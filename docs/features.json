@@ -1,0 +1,24 @@
+{
+  "requireReview": true,
+  "features": [
+    {
+      "id": "F01",
+      "behavior": "Тестовый фреймворк настроен: пример-тест рендерит компонент и находит его по роли",
+      "verification": "npx vitest run tests/example.test.tsx",
+      "state": "passing",
+      "evidence": "инициализация из шаблона",
+      "review": {
+        "verdict": "approved",
+        "by": "template",
+        "notes": "базовая проверка шаблона: тест осмысленный, проверяет рендер и поиск по роли",
+        "date": "2026-07-21T00:00:00.000Z"
+      }
+    },
+    {
+      "id": "F02",
+      "behavior": "{{Опиши поведение глазами пользователя: «пользователь может добавить товар в корзину»}}",
+      "verification": "{{Команда, возвращающая 0 при успехе: npx vitest run tests/cart.test.tsx}}",
+      "state": "not_started"
+    }
+  ]
+}
