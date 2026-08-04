@@ -16,9 +16,45 @@
     },
     {
       "id": "F02",
-      "behavior": "{{Опиши поведение глазами пользователя: «пользователь может добавить товар в корзину»}}",
-      "verification": "{{Команда, возвращающая 0 при успехе: npx vitest run tests/cart.test.tsx}}",
-      "state": "not_started"
+      "behavior": "Поиск через MCP возвращает разобранные предложения; отмена запроса прекращает вызовы и не оставляет поздних эффектов (CONSTITUTION 16-17)",
+      "verification": "npx vitest run tests/mcp",
+      "state": "not_started",
+      "phase": 1
+    },
+    {
+      "id": "F03",
+      "behavior": "Пользователь описывает поездку фразой и получает структуру поиска; повторный разбор той же фразы даёт то же окно дат (AC1, AC4, AC5)",
+      "verification": "npx vitest run tests/discovery/parse.test.ts",
+      "state": "not_started",
+      "phase": 1
+    },
+    {
+      "id": "F04",
+      "behavior": "Запрос без города отправления или без возрастов детей не запускает поиск, а спрашивает недостающее (AC2, AC3, AC6)",
+      "verification": "npx vitest run tests/discovery/blocking.test.ts",
+      "state": "not_started",
+      "phase": 1
+    },
+    {
+      "id": "F05",
+      "behavior": "Пользователь видит карточку поездки с дорогой, жильём и итоговой ценой; цена проживания не умножается на число ночей (AC12, AC13, AC15)",
+      "verification": "npx vitest run tests/packages",
+      "state": "not_started",
+      "phase": 1
+    },
+    {
+      "id": "F06",
+      "behavior": "Границы модулей проверяются машиной: ranking, explain и packages не импортируют mcp; сервер не хранит состояние между запросами (CONSTITUTION 10, 11, 13)",
+      "verification": "node scripts/check-boundaries.mjs",
+      "state": "not_started",
+      "phase": 1
+    },
+    {
+      "id": "F07",
+      "behavior": "С главной страницы пользователь проходит до перехода на Туту на захардкоженных направлениях (сквозной срез фазы 1)",
+      "verification": "npm run smoke",
+      "state": "not_started",
+      "phase": 1
     }
   ]
 }
