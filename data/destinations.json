@@ -1,0 +1,1494 @@
+[
+  {
+    "name": "Сочи",
+    "locationTypes": [
+      "sea",
+      "mountains"
+    ],
+    "seasonMonths": [
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "priceClass": "high",
+    "reachability": {
+      "Москва": "easy",
+      "Санкт-Петербург": "medium",
+      "Казань": "medium",
+      "Екатеринбург": "medium",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "easy"
+    }
+  },
+  {
+    "name": "Анапа",
+    "locationTypes": [
+      "sea"
+    ],
+    "seasonMonths": [
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "priceClass": "medium",
+    "reachability": {
+      "Москва": "easy",
+      "Санкт-Петербург": "medium",
+      "Казань": "medium",
+      "Екатеринбург": "medium",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "easy"
+    }
+  },
+  {
+    "name": "Геленджик",
+    "locationTypes": [
+      "sea",
+      "nature"
+    ],
+    "seasonMonths": [
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "priceClass": "medium",
+    "reachability": {
+      "Москва": "easy",
+      "Санкт-Петербург": "medium",
+      "Казань": "medium",
+      "Екатеринбург": "medium",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "easy"
+    }
+  },
+  {
+    "name": "Туапсе",
+    "locationTypes": [
+      "sea",
+      "nature"
+    ],
+    "seasonMonths": [
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "priceClass": "low",
+    "reachability": {
+      "Москва": "easy",
+      "Санкт-Петербург": "medium",
+      "Казань": "medium",
+      "Екатеринбург": "medium",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "easy"
+    }
+  },
+  {
+    "name": "Ейск",
+    "locationTypes": [
+      "sea"
+    ],
+    "seasonMonths": [
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "priceClass": "low",
+    "reachability": {
+      "Москва": "easy",
+      "Санкт-Петербург": "medium",
+      "Казань": "medium",
+      "Екатеринбург": "medium",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "easy"
+    }
+  },
+  {
+    "name": "Калининград",
+    "locationTypes": [
+      "sea",
+      "city"
+    ],
+    "seasonMonths": [
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "priceClass": "medium",
+    "reachability": {
+      "Москва": "easy",
+      "Санкт-Петербург": "easy",
+      "Казань": "medium",
+      "Екатеринбург": "medium",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "long"
+    }
+  },
+  {
+    "name": "Зеленоградск",
+    "locationTypes": [
+      "sea",
+      "treatment"
+    ],
+    "seasonMonths": [
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "priceClass": "medium",
+    "reachability": {
+      "Москва": "easy",
+      "Санкт-Петербург": "easy",
+      "Казань": "medium",
+      "Екатеринбург": "medium",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "long"
+    }
+  },
+  {
+    "name": "Светлогорск",
+    "locationTypes": [
+      "sea",
+      "treatment"
+    ],
+    "seasonMonths": [
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "priceClass": "medium",
+    "reachability": {
+      "Москва": "easy",
+      "Санкт-Петербург": "easy",
+      "Казань": "medium",
+      "Екатеринбург": "medium",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "long"
+    }
+  },
+  {
+    "name": "Владивосток",
+    "locationTypes": [
+      "sea",
+      "city",
+      "nature"
+    ],
+    "seasonMonths": [
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "priceClass": "high",
+    "reachability": {
+      "Москва": "long",
+      "Санкт-Петербург": "long",
+      "Казань": "long",
+      "Екатеринбург": "medium",
+      "Новосибирск": "easy",
+      "Ростов-на-Дону": "long"
+    }
+  },
+  {
+    "name": "Махачкала",
+    "locationTypes": [
+      "sea",
+      "city"
+    ],
+    "seasonMonths": [
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "priceClass": "low",
+    "reachability": {
+      "Москва": "easy",
+      "Санкт-Петербург": "medium",
+      "Казань": "medium",
+      "Екатеринбург": "medium",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "easy"
+    }
+  },
+  {
+    "name": "Дербент",
+    "locationTypes": [
+      "sea",
+      "city"
+    ],
+    "seasonMonths": [
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "priceClass": "low",
+    "reachability": {
+      "Москва": "easy",
+      "Санкт-Петербург": "medium",
+      "Казань": "medium",
+      "Екатеринбург": "medium",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "easy"
+    }
+  },
+  {
+    "name": "Кисловодск",
+    "locationTypes": [
+      "treatment",
+      "mountains"
+    ],
+    "seasonMonths": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "priceClass": "medium",
+    "reachability": {
+      "Москва": "easy",
+      "Санкт-Петербург": "medium",
+      "Казань": "medium",
+      "Екатеринбург": "medium",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "easy"
+    }
+  },
+  {
+    "name": "Пятигорск",
+    "locationTypes": [
+      "treatment",
+      "mountains",
+      "city"
+    ],
+    "seasonMonths": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "priceClass": "medium",
+    "reachability": {
+      "Москва": "easy",
+      "Санкт-Петербург": "medium",
+      "Казань": "medium",
+      "Екатеринбург": "medium",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "easy"
+    }
+  },
+  {
+    "name": "Ессентуки",
+    "locationTypes": [
+      "treatment"
+    ],
+    "seasonMonths": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "priceClass": "medium",
+    "reachability": {
+      "Москва": "easy",
+      "Санкт-Петербург": "medium",
+      "Казань": "medium",
+      "Екатеринбург": "medium",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "easy"
+    }
+  },
+  {
+    "name": "Железноводск",
+    "locationTypes": [
+      "treatment",
+      "nature"
+    ],
+    "seasonMonths": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "priceClass": "medium",
+    "reachability": {
+      "Москва": "easy",
+      "Санкт-Петербург": "medium",
+      "Казань": "medium",
+      "Екатеринбург": "medium",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "easy"
+    }
+  },
+  {
+    "name": "Нальчик",
+    "locationTypes": [
+      "mountains",
+      "city",
+      "nature"
+    ],
+    "seasonMonths": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "priceClass": "low",
+    "reachability": {
+      "Москва": "easy",
+      "Санкт-Петербург": "medium",
+      "Казань": "medium",
+      "Екатеринбург": "medium",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "easy"
+    }
+  },
+  {
+    "name": "Владикавказ",
+    "locationTypes": [
+      "mountains",
+      "city"
+    ],
+    "seasonMonths": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "priceClass": "medium",
+    "reachability": {
+      "Москва": "easy",
+      "Санкт-Петербург": "medium",
+      "Казань": "medium",
+      "Екатеринбург": "medium",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "easy"
+    }
+  },
+  {
+    "name": "Горно-Алтайск",
+    "locationTypes": [
+      "mountains",
+      "nature"
+    ],
+    "seasonMonths": [
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "priceClass": "high",
+    "reachability": {
+      "Москва": "medium",
+      "Санкт-Петербург": "long",
+      "Казань": "medium",
+      "Екатеринбург": "easy",
+      "Новосибирск": "easy",
+      "Ростов-на-Дону": "long"
+    }
+  },
+  {
+    "name": "Белокуриха",
+    "locationTypes": [
+      "treatment",
+      "mountains",
+      "nature"
+    ],
+    "seasonMonths": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "priceClass": "medium",
+    "reachability": {
+      "Москва": "medium",
+      "Санкт-Петербург": "long",
+      "Казань": "medium",
+      "Екатеринбург": "easy",
+      "Новосибирск": "easy",
+      "Ростов-на-Дону": "long"
+    }
+  },
+  {
+    "name": "Майкоп",
+    "locationTypes": [
+      "mountains",
+      "nature",
+      "city"
+    ],
+    "seasonMonths": [
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "priceClass": "low",
+    "reachability": {
+      "Москва": "easy",
+      "Санкт-Петербург": "medium",
+      "Казань": "medium",
+      "Екатеринбург": "medium",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "easy"
+    }
+  },
+  {
+    "name": "Казань",
+    "locationTypes": [
+      "city"
+    ],
+    "seasonMonths": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "priceClass": "medium",
+    "reachability": {
+      "Москва": "easy",
+      "Санкт-Петербург": "medium",
+      "Казань": "easy",
+      "Екатеринбург": "medium",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "easy"
+    }
+  },
+  {
+    "name": "Суздаль",
+    "locationTypes": [
+      "city"
+    ],
+    "seasonMonths": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "priceClass": "medium",
+    "reachability": {
+      "Москва": "easy",
+      "Санкт-Петербург": "easy",
+      "Казань": "easy",
+      "Екатеринбург": "medium",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "medium"
+    }
+  },
+  {
+    "name": "Владимир",
+    "locationTypes": [
+      "city"
+    ],
+    "seasonMonths": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "priceClass": "low",
+    "reachability": {
+      "Москва": "easy",
+      "Санкт-Петербург": "easy",
+      "Казань": "easy",
+      "Екатеринбург": "medium",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "medium"
+    }
+  },
+  {
+    "name": "Нижний Новгород",
+    "locationTypes": [
+      "city"
+    ],
+    "seasonMonths": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "priceClass": "medium",
+    "reachability": {
+      "Москва": "easy",
+      "Санкт-Петербург": "easy",
+      "Казань": "easy",
+      "Екатеринбург": "medium",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "medium"
+    }
+  },
+  {
+    "name": "Ярославль",
+    "locationTypes": [
+      "city"
+    ],
+    "seasonMonths": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "priceClass": "low",
+    "reachability": {
+      "Москва": "easy",
+      "Санкт-Петербург": "easy",
+      "Казань": "easy",
+      "Екатеринбург": "medium",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "medium"
+    }
+  },
+  {
+    "name": "Кострома",
+    "locationTypes": [
+      "city"
+    ],
+    "seasonMonths": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "priceClass": "low",
+    "reachability": {
+      "Москва": "easy",
+      "Санкт-Петербург": "easy",
+      "Казань": "easy",
+      "Екатеринбург": "medium",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "medium"
+    }
+  },
+  {
+    "name": "Псков",
+    "locationTypes": [
+      "city"
+    ],
+    "seasonMonths": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "priceClass": "low",
+    "reachability": {
+      "Москва": "easy",
+      "Санкт-Петербург": "easy",
+      "Казань": "medium",
+      "Екатеринбург": "medium",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "long"
+    }
+  },
+  {
+    "name": "Великий Новгород",
+    "locationTypes": [
+      "city"
+    ],
+    "seasonMonths": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "priceClass": "low",
+    "reachability": {
+      "Москва": "easy",
+      "Санкт-Петербург": "easy",
+      "Казань": "medium",
+      "Екатеринбург": "medium",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "long"
+    }
+  },
+  {
+    "name": "Тула",
+    "locationTypes": [
+      "city"
+    ],
+    "seasonMonths": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "priceClass": "low",
+    "reachability": {
+      "Москва": "easy",
+      "Санкт-Петербург": "easy",
+      "Казань": "easy",
+      "Екатеринбург": "medium",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "medium"
+    }
+  },
+  {
+    "name": "Коломна",
+    "locationTypes": [
+      "city"
+    ],
+    "seasonMonths": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "priceClass": "low",
+    "reachability": {
+      "Москва": "easy",
+      "Санкт-Петербург": "easy",
+      "Казань": "easy",
+      "Екатеринбург": "medium",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "medium"
+    }
+  },
+  {
+    "name": "Рязань",
+    "locationTypes": [
+      "city"
+    ],
+    "seasonMonths": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "priceClass": "low",
+    "reachability": {
+      "Москва": "easy",
+      "Санкт-Петербург": "easy",
+      "Казань": "easy",
+      "Екатеринбург": "medium",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "medium"
+    }
+  },
+  {
+    "name": "Самара",
+    "locationTypes": [
+      "city",
+      "nature"
+    ],
+    "seasonMonths": [
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "priceClass": "medium",
+    "reachability": {
+      "Москва": "easy",
+      "Санкт-Петербург": "medium",
+      "Казань": "easy",
+      "Екатеринбург": "medium",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "easy"
+    }
+  },
+  {
+    "name": "Волгоград",
+    "locationTypes": [
+      "city"
+    ],
+    "seasonMonths": [
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "priceClass": "low",
+    "reachability": {
+      "Москва": "easy",
+      "Санкт-Петербург": "medium",
+      "Казань": "easy",
+      "Екатеринбург": "medium",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "easy"
+    }
+  },
+  {
+    "name": "Екатеринбург",
+    "locationTypes": [
+      "city"
+    ],
+    "seasonMonths": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "priceClass": "medium",
+    "reachability": {
+      "Москва": "medium",
+      "Санкт-Петербург": "long",
+      "Казань": "easy",
+      "Екатеринбург": "easy",
+      "Новосибирск": "medium",
+      "Ростов-на-Дону": "long"
+    }
+  },
+  {
+    "name": "Тюмень",
+    "locationTypes": [
+      "city",
+      "treatment"
+    ],
+    "seasonMonths": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "priceClass": "medium",
+    "reachability": {
+      "Москва": "medium",
+      "Санкт-Петербург": "long",
+      "Казань": "easy",
+      "Екатеринбург": "easy",
+      "Новосибирск": "medium",
+      "Ростов-на-Дону": "long"
+    }
+  },
+  {
+    "name": "Тобольск",
+    "locationTypes": [
+      "city"
+    ],
+    "seasonMonths": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "priceClass": "low",
+    "reachability": {
+      "Москва": "medium",
+      "Санкт-Петербург": "long",
+      "Казань": "easy",
+      "Екатеринбург": "easy",
+      "Новосибирск": "medium",
+      "Ростов-на-Дону": "long"
+    }
+  },
+  {
+    "name": "Новосибирск",
+    "locationTypes": [
+      "city"
+    ],
+    "seasonMonths": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "priceClass": "medium",
+    "reachability": {
+      "Москва": "medium",
+      "Санкт-Петербург": "long",
+      "Казань": "medium",
+      "Екатеринбург": "easy",
+      "Новосибирск": "easy",
+      "Ростов-на-Дону": "long"
+    }
+  },
+  {
+    "name": "Иркутск",
+    "locationTypes": [
+      "city",
+      "nature"
+    ],
+    "seasonMonths": [
+      2,
+      3,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "priceClass": "high",
+    "reachability": {
+      "Москва": "medium",
+      "Санкт-Петербург": "long",
+      "Казань": "medium",
+      "Екатеринбург": "easy",
+      "Новосибирск": "easy",
+      "Ростов-на-Дону": "long"
+    }
+  },
+  {
+    "name": "Улан-Удэ",
+    "locationTypes": [
+      "city",
+      "nature"
+    ],
+    "seasonMonths": [
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "priceClass": "medium",
+    "reachability": {
+      "Москва": "medium",
+      "Санкт-Петербург": "long",
+      "Казань": "medium",
+      "Екатеринбург": "easy",
+      "Новосибирск": "easy",
+      "Ростов-на-Дону": "long"
+    }
+  },
+  {
+    "name": "Петрозаводск",
+    "locationTypes": [
+      "nature",
+      "city"
+    ],
+    "seasonMonths": [
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "priceClass": "medium",
+    "reachability": {
+      "Москва": "easy",
+      "Санкт-Петербург": "easy",
+      "Казань": "medium",
+      "Екатеринбург": "medium",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "long"
+    }
+  },
+  {
+    "name": "Сортавала",
+    "locationTypes": [
+      "nature"
+    ],
+    "seasonMonths": [
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "priceClass": "medium",
+    "reachability": {
+      "Москва": "easy",
+      "Санкт-Петербург": "easy",
+      "Казань": "medium",
+      "Екатеринбург": "medium",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "long"
+    }
+  },
+  {
+    "name": "Выборг",
+    "locationTypes": [
+      "city",
+      "nature"
+    ],
+    "seasonMonths": [
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "priceClass": "low",
+    "reachability": {
+      "Москва": "easy",
+      "Санкт-Петербург": "easy",
+      "Казань": "medium",
+      "Екатеринбург": "medium",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "long"
+    }
+  },
+  {
+    "name": "Мурманск",
+    "locationTypes": [
+      "nature",
+      "city"
+    ],
+    "seasonMonths": [
+      1,
+      2,
+      3,
+      6,
+      7,
+      8,
+      9,
+      11,
+      12
+    ],
+    "priceClass": "high",
+    "reachability": {
+      "Москва": "easy",
+      "Санкт-Петербург": "easy",
+      "Казань": "medium",
+      "Екатеринбург": "medium",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "long"
+    }
+  },
+  {
+    "name": "Москва",
+    "locationTypes": [
+      "city"
+    ],
+    "seasonMonths": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "priceClass": "high",
+    "reachability": {
+      "Москва": "easy",
+      "Санкт-Петербург": "easy",
+      "Казань": "easy",
+      "Екатеринбург": "medium",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "medium"
+    }
+  },
+  {
+    "name": "Санкт-Петербург",
+    "locationTypes": [
+      "city"
+    ],
+    "seasonMonths": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "priceClass": "high",
+    "reachability": {
+      "Москва": "easy",
+      "Санкт-Петербург": "easy",
+      "Казань": "medium",
+      "Екатеринбург": "medium",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "long"
+    }
+  },
+  {
+    "name": "Минск",
+    "locationTypes": [
+      "city"
+    ],
+    "seasonMonths": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "priceClass": "medium",
+    "reachability": {
+      "Москва": "easy",
+      "Санкт-Петербург": "easy",
+      "Казань": "medium",
+      "Екатеринбург": "long",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "medium"
+    }
+  },
+  {
+    "name": "Брест",
+    "locationTypes": [
+      "city",
+      "nature"
+    ],
+    "seasonMonths": [
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "priceClass": "low",
+    "reachability": {
+      "Москва": "easy",
+      "Санкт-Петербург": "easy",
+      "Казань": "medium",
+      "Екатеринбург": "long",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "medium"
+    }
+  },
+  {
+    "name": "Гродно",
+    "locationTypes": [
+      "city"
+    ],
+    "seasonMonths": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "priceClass": "low",
+    "reachability": {
+      "Москва": "easy",
+      "Санкт-Петербург": "easy",
+      "Казань": "medium",
+      "Екатеринбург": "long",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "medium"
+    }
+  },
+  {
+    "name": "Ереван",
+    "locationTypes": [
+      "city",
+      "mountains"
+    ],
+    "seasonMonths": [
+      3,
+      4,
+      5,
+      6,
+      9,
+      10,
+      11
+    ],
+    "priceClass": "medium",
+    "reachability": {
+      "Москва": "medium",
+      "Санкт-Петербург": "long",
+      "Казань": "medium",
+      "Екатеринбург": "long",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "easy"
+    }
+  },
+  {
+    "name": "Тбилиси",
+    "locationTypes": [
+      "city",
+      "mountains"
+    ],
+    "seasonMonths": [
+      3,
+      4,
+      5,
+      6,
+      9,
+      10,
+      11
+    ],
+    "priceClass": "medium",
+    "reachability": {
+      "Москва": "medium",
+      "Санкт-Петербург": "long",
+      "Казань": "medium",
+      "Екатеринбург": "long",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "easy"
+    }
+  },
+  {
+    "name": "Баку",
+    "locationTypes": [
+      "sea",
+      "city"
+    ],
+    "seasonMonths": [
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "priceClass": "medium",
+    "reachability": {
+      "Москва": "medium",
+      "Санкт-Петербург": "long",
+      "Казань": "medium",
+      "Екатеринбург": "long",
+      "Новосибирск": "long",
+      "Ростов-на-Дону": "easy"
+    }
+  },
+  {
+    "name": "Алматы",
+    "locationTypes": [
+      "city",
+      "mountains",
+      "nature"
+    ],
+    "seasonMonths": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "priceClass": "high",
+    "reachability": {
+      "Москва": "long",
+      "Санкт-Петербург": "long",
+      "Казань": "medium",
+      "Екатеринбург": "medium",
+      "Новосибирск": "easy",
+      "Ростов-на-Дону": "long"
+    }
+  },
+  {
+    "name": "Астана",
+    "locationTypes": [
+      "city"
+    ],
+    "seasonMonths": [
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "priceClass": "medium",
+    "reachability": {
+      "Москва": "long",
+      "Санкт-Петербург": "long",
+      "Казань": "medium",
+      "Екатеринбург": "medium",
+      "Новосибирск": "easy",
+      "Ростов-на-Дону": "long"
+    }
+  },
+  {
+    "name": "Бишкек",
+    "locationTypes": [
+      "city",
+      "mountains",
+      "nature"
+    ],
+    "seasonMonths": [
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "priceClass": "medium",
+    "reachability": {
+      "Москва": "long",
+      "Санкт-Петербург": "long",
+      "Казань": "medium",
+      "Екатеринбург": "medium",
+      "Новосибирск": "easy",
+      "Ростов-на-Дону": "long"
+    }
+  },
+  {
+    "name": "Ташкент",
+    "locationTypes": [
+      "city"
+    ],
+    "seasonMonths": [
+      3,
+      4,
+      5,
+      9,
+      10,
+      11
+    ],
+    "priceClass": "medium",
+    "reachability": {
+      "Москва": "long",
+      "Санкт-Петербург": "long",
+      "Казань": "medium",
+      "Екатеринбург": "medium",
+      "Новосибирск": "easy",
+      "Ростов-на-Дону": "long"
+    }
+  },
+  {
+    "name": "Самарканд",
+    "locationTypes": [
+      "city"
+    ],
+    "seasonMonths": [
+      3,
+      4,
+      5,
+      9,
+      10,
+      11
+    ],
+    "priceClass": "medium",
+    "reachability": {
+      "Москва": "long",
+      "Санкт-Петербург": "long",
+      "Казань": "medium",
+      "Екатеринбург": "medium",
+      "Новосибирск": "easy",
+      "Ростов-на-Дону": "long"
+    }
+  }
+]
