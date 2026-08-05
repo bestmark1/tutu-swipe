@@ -3,6 +3,7 @@ import {
   unavailableDiscoveryFallback,
   type DateWindow,
   type DiscoveryBlockingField,
+  type DiscoveryClarification,
   type DiscoveryFallbackParser,
   type DiscoveryParseResult,
   type DiscoveryQuery,
@@ -63,6 +64,17 @@ export async function parseTravelQuery(
   }
 
   const recognizedNothing = recognizedFieldCount(parsed) === 0;
+  const unresolvedBlocking = unresolvedBlockingFields(
+    blockingFields,
+    combined,
+  );
+  if (
+    unresolvedBlocking.length > 0 &&
+    (!recognizedNothing || travellerMatch.childrenMentionedWithoutAges)
+  ) {
+    return clarificationRequired(unresolvedBlocking, "rules+fallback");
+  }
+
   return {
     status: "rejected",
     source: "rules+fallback",
@@ -73,7 +85,7 @@ export async function parseTravelQuery(
     hint:
       "Укажите город отправления, состав путешественников, даты, общий бюджет и желаемый формат отдыха.",
     missingFields: combinedMissingFields,
-    blockingFields: unresolvedBlockingFields(blockingFields, combined),
+    blockingFields: unresolvedBlocking,
   };
 }
 
@@ -357,6 +369,29 @@ function unresolvedBlockingFields(
     if (field === "origin") return !parsed.origin;
     return !parsed.travellers || parsed.travellers.childrenAges.length === 0;
   });
+}
+
+const CLARIFICATION_QUESTIONS: Record<
+  DiscoveryBlockingField,
+  DiscoveryClarification["question"]
+> = {
+  origin: "Из какого города вы отправляетесь?",
+  childrenAges: "Сколько лет каждому ребёнку?",
+};
+
+function clarificationRequired(
+  blockingFields: DiscoveryBlockingField[],
+  source: "rules" | "rules+fallback",
+): DiscoveryParseResult {
+  return {
+    status: "needs_clarification",
+    source,
+    blockingFields,
+    clarifications: blockingFields.map((field) => ({
+      field,
+      question: CLARIFICATION_QUESTIONS[field],
+    })),
+  };
 }
 
 function success(

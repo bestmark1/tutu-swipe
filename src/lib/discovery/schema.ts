@@ -41,6 +41,11 @@ export type DiscoveryRequiredField = keyof DiscoveryQuery;
 // contract and never guesses either value.
 export type DiscoveryBlockingField = "origin" | "childrenAges";
 
+export interface DiscoveryClarification {
+  field: DiscoveryBlockingField;
+  question: string;
+}
+
 export interface DiscoveryFallbackRequest {
   input: string;
   today: string;
@@ -60,6 +65,12 @@ export type DiscoveryParseResult =
       status: "success";
       source: "rules" | "rules+fallback";
       query: DiscoveryQuery;
+    }
+  | {
+      status: "needs_clarification";
+      source: "rules" | "rules+fallback";
+      blockingFields: DiscoveryBlockingField[];
+      clarifications: DiscoveryClarification[];
     }
   | {
       status: "rejected";
