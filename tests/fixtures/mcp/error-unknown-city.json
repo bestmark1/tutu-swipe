@@ -1,0 +1,13 @@
+{
+  "jsonrpc": "2.0",
+  "id": 5,
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"variants\":[],\"meta\":{\"from\":null,\"to\":null,\"optimize_for\":\"price\",\"modes_requested\":[\"avia\",\"railway\",\"bus\",\"etrain\"],\"modes_summary\":{},\"unavailable\":[{\"mode\":\"avia\",\"reason\":\"no_route\",\"detail\":\"could not resolve destination='Заозёрск-Которого-Нет'\"},{\"mode\":\"railway\",\"reason\":\"no_route\",\"detail\":\"could not resolve destination='Заозёрск-Которого-Нет'\"},{\"mode\":\"bus\",\"reason\":\"no_route\",\"detail\":\"could not resolve destination='Заозёрск-Которого-Нет'\"},{\"mode\":\"etrain\",\"reason\":\"no_route\",\"detail\":\"could not resolve destination='Заозёрск-Которого-Нет'\"}],\"page\":1,\"page_size\":10,\"total_returned\":0,\"has_more\":false}}"
+      }
+    ],
+    "isError": false
+  }
+}

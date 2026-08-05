@@ -1,0 +1,13 @@
+{
+  "jsonrpc": "2.0",
+  "id": 4,
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "# Multitransport playbook (`search_multitransport`)\n\nOne call fans out avia + railway + bus + etrain in parallel and returns a\nunified, sorted top-level `variants[]`. NOTE the nesting AND the rail\nexception: each top-level entry is a cross-mode option that, in the default\n`compact` view, carries its own fare-family `variants[]` for avia/bus/etrain\n— but a RAIL entry instead carries a `fares` summary `{count, price_from,\nprice_to, currency, refundable_count?, changeable_count?}` (no nested\n`variants[]`/`offer_hash`); read the per-class ladder from\n`get_offer_details(product_type='rail')` or re-run with `view='full'`.\n- `optimize_for='price'|'time'` ranks per mode; `modes` narrows the subset\n  (default all four).\n- ADULTS ONLY: multitransport takes `adults` and prices every mode for\n  adults. For a party with children run the concrete mode's search\n  (`search_avia` / `search_bus` take `children`) — its offers are priced\n  for the real party, and registration checks the composition against\n  what was searched.\n- Soft-fails per mode: a down upstream shows up in `meta.unavailable[]` and\n  the rest of the result stays usable.\n- Prefer CITY input here. If origin/destination names a specific airport,\n  only the avia mode narrows to it (other modes search the city or fail\n  to resolve); the avia drop counter / note then surface under\n  `meta.modes_summary.avia` (`dropped_wrong_airport`, `airport_note`) —\n  use them to explain a thin avia block.\n- Checkout / detail per entry follows the SAME rules as the single-mode\n  tool for that transport: use `checkout_url` when present, else\n  `create_checkout_link` with `checkout_ref`; `details_ref` is present for\n  rail/bus. For per-mode fields, edge-cases and grounding, read that mode's\n  instruction tool (`get_avia_instructions` / `get_rail_instructions` /\n  `get_bus_instructions` / `get_etrain_instructions`)."
+      }
+    ],
+    "isError": false
+  }
+}
