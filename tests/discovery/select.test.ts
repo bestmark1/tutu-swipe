@@ -23,13 +23,35 @@ describe("offline destination selection", () => {
   it("selects seasonal seaside destinations for a September sea query", () => {
     const candidates = selectDestinations(query());
 
-    expect(candidates).toHaveLength(8);
+    expect(candidates.length).toBeGreaterThanOrEqual(3);
+    expect(candidates.length).toBeLessThanOrEqual(8);
     expect(
       candidates.every(
         ({ locationTypes, seasonMonths }) =>
           locationTypes.includes("sea") && seasonMonths.includes(9),
       ),
     ).toBe(true);
+  });
+
+  it("fills to the minimum with marked fallbacks when fewer than 3 match the category", () => {
+    const candidates = selectDestinations(
+      query({
+        vibeTags: ["mountains"],
+        budget: { ...query().budget, amount: 60_000 },
+      }),
+    );
+    const matching = candidates.filter(({ locationTypes }) =>
+      locationTypes.includes("mountains"),
+    );
+    const fallbacks = candidates.filter(({ locationTypes }) =>
+      !locationTypes.includes("mountains"),
+    );
+
+    expect(candidates).toHaveLength(3);
+    expect(matching).toHaveLength(2);
+    expect(matching.every(({ isFallback }) => !isFallback)).toBe(true);
+    expect(fallbacks).toHaveLength(1);
+    expect(fallbacks.every(({ isFallback }) => isFallback)).toBe(true);
   });
 
   it("excludes the departure city from candidates", () => {

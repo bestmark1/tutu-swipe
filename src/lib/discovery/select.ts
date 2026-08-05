@@ -30,6 +30,7 @@ const REACHABILITY_SCORE: Record<ReachabilityClass, number> = {
 
 export interface DestinationCandidate extends Destination {
   aboveBudget: boolean;
+  isFallback: boolean;
 }
 
 interface ScoredDestination {
@@ -87,10 +88,48 @@ export function selectDestinations(
     return left.catalogIndex - right.catalogIndex;
   });
 
-  return pool.slice(0, MAX_CANDIDATES).map(({ destination, aboveBudget }) => ({
-    ...destination,
-    aboveBudget,
-  }));
+  const selectionPool = noneAffordable
+    ? pool.filter(
+        ({ destination }) =>
+          destination.priceClass === pool[0]?.destination.priceClass,
+      )
+    : pool;
+  const categoryMatches = selectionPool.filter(({ destination }) =>
+    matchesRequestedCategory(destination, query.vibeTags),
+  );
+
+  if (categoryMatches.length >= MIN_CANDIDATES) {
+    return categoryMatches
+      .slice(0, MAX_CANDIDATES)
+      .map((candidate) => toCandidate(candidate, false));
+  }
+
+  const categoryFallbacks = selectionPool
+    .filter(({ destination }) =>
+      !matchesRequestedCategory(destination, query.vibeTags),
+    )
+    .slice(0, MIN_CANDIDATES - categoryMatches.length);
+
+  return [
+    ...categoryMatches.map((candidate) => toCandidate(candidate, false)),
+    ...categoryFallbacks.map((candidate) => toCandidate(candidate, true)),
+  ];
+}
+
+function toCandidate(
+  { destination, aboveBudget }: ScoredDestination,
+  isFallback: boolean,
+): DestinationCandidate {
+  return { ...destination, aboveBudget, isFallback };
+}
+
+function matchesRequestedCategory(
+  destination: Destination,
+  vibeTags: readonly VibeTag[],
+): boolean {
+  return vibeTags.some(
+    (tag) => vibeScore(tag, destination.locationTypes) > 0,
+  );
 }
 
 function destinationScore(

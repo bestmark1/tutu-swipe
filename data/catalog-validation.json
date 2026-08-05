@@ -1,0 +1,1594 @@
+{
+  "schemaVersion": 2,
+  "run": {
+    "status": "complete",
+    "startedAt": "2026-08-05T14:51:57.547Z",
+    "completedAt": "2026-08-05T14:54:31.415Z",
+    "catalogHash": "5fc17ca02f1d75fb0137b4330e68e38d557e779ac4ff124188e08f9a93c0b171",
+    "matrix": {
+      "origins": [
+        "Москва",
+        "Санкт-Петербург",
+        "Казань",
+        "Екатеринбург",
+        "Новосибирск",
+        "Ростов-на-Дону"
+      ],
+      "windowStrategy": "next-season-month-v1",
+      "nights": 4,
+      "referenceDate": "2026-08-05"
+    }
+  },
+  "destinations": {
+    "Геленджик": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:51:57.555Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "offers_found",
+          "Екатеринбург": "offers_found",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "offers_found"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Казань",
+          "Екатеринбург",
+          "Новосибирск",
+          "Ростов-на-Дону"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Анапа": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:51:57.555Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "offers_found",
+          "Екатеринбург": "no_offers_for_dates",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "offers_found"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Казань",
+          "Новосибирск",
+          "Ростов-на-Дону"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Сочи": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:51:57.552Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "offers_found",
+          "Екатеринбург": "offers_found",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "offers_found"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Казань",
+          "Екатеринбург",
+          "Новосибирск",
+          "Ростов-на-Дону"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Туапсе": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:51:57.556Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "offers_found",
+          "Екатеринбург": "offers_found",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "offers_found"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Казань",
+          "Екатеринбург",
+          "Новосибирск",
+          "Ростов-на-Дону"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Ейск": {
+      "status": "unsuitable",
+      "reason": "transport_not_found_from_any_origin",
+      "checkedAt": "2026-08-05T14:52:06.517Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "unresolved",
+        "byOrigin": {
+          "Москва": "unresolved",
+          "Санкт-Петербург": "unresolved",
+          "Казань": "unresolved",
+          "Екатеринбург": "unresolved",
+          "Новосибирск": "unresolved",
+          "Ростов-на-Дону": "unresolved"
+        },
+        "reachableFrom": []
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Зеленоградск": {
+      "status": "unsuitable",
+      "reason": "transport_not_found_from_any_origin",
+      "checkedAt": "2026-08-05T14:52:09.748Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "unresolved",
+        "byOrigin": {
+          "Москва": "unresolved",
+          "Санкт-Петербург": "unresolved",
+          "Казань": "unresolved",
+          "Екатеринбург": "unresolved",
+          "Новосибирск": "unresolved",
+          "Ростов-на-Дону": "unresolved"
+        },
+        "reachableFrom": []
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Калининград": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:52:08.706Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "offers_found",
+          "Екатеринбург": "offers_found",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "no_offers_for_dates"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Казань",
+          "Екатеринбург",
+          "Новосибирск"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Светлогорск": {
+      "status": "unsuitable",
+      "reason": "transport_not_found_from_any_origin",
+      "checkedAt": "2026-08-05T14:52:11.039Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "no_offers_for_dates",
+        "byOrigin": {
+          "Москва": "no_offers_for_dates",
+          "Санкт-Петербург": "no_offers_for_dates",
+          "Казань": "no_offers_for_dates",
+          "Екатеринбург": "no_offers_for_dates",
+          "Новосибирск": "no_offers_for_dates",
+          "Ростов-на-Дону": "no_offers_for_dates"
+        },
+        "reachableFrom": []
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Владивосток": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:52:11.283Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "offers_found",
+          "Екатеринбург": "offers_found",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "no_offers_for_dates"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Казань",
+          "Екатеринбург",
+          "Новосибирск"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Махачкала": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:52:15.978Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "offers_found",
+          "Екатеринбург": "offers_found",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "offers_found"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Казань",
+          "Екатеринбург",
+          "Новосибирск",
+          "Ростов-на-Дону"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Дербент": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:52:18.849Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "unresolved",
+          "Казань": "unresolved",
+          "Екатеринбург": "offers_found",
+          "Новосибирск": "unresolved",
+          "Ростов-на-Дону": "offers_found"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Екатеринбург",
+          "Ростов-на-Дону"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Кисловодск": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:52:19.099Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "offers_found",
+          "Екатеринбург": "unresolved",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "offers_found"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Казань",
+          "Новосибирск",
+          "Ростов-на-Дону"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Пятигорск": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:52:20.866Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "offers_found",
+          "Екатеринбург": "unresolved",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "offers_found"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Казань",
+          "Новосибирск",
+          "Ростов-на-Дону"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Железноводск": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:52:25.223Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "unresolved",
+          "Санкт-Петербург": "unresolved",
+          "Казань": "unresolved",
+          "Екатеринбург": "unresolved",
+          "Новосибирск": "unresolved",
+          "Ростов-на-Дону": "offers_found"
+        },
+        "reachableFrom": [
+          "Ростов-на-Дону"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Ессентуки": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:52:24.324Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "offers_found",
+          "Екатеринбург": "unresolved",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "offers_found"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Казань",
+          "Новосибирск",
+          "Ростов-на-Дону"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Нальчик": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:52:27.001Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "offers_found",
+          "Екатеринбург": "offers_found",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "offers_found"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Казань",
+          "Екатеринбург",
+          "Новосибирск",
+          "Ростов-на-Дону"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Белокуриха": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:52:31.700Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "unresolved",
+          "Санкт-Петербург": "unresolved",
+          "Казань": "unresolved",
+          "Екатеринбург": "unresolved",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "unresolved"
+        },
+        "reachableFrom": [
+          "Новосибирск"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Владикавказ": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:52:29.882Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "offers_found",
+          "Екатеринбург": "offers_found",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "offers_found"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Казань",
+          "Екатеринбург",
+          "Новосибирск",
+          "Ростов-на-Дону"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Майкоп": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:52:34.166Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "unresolved",
+          "Казань": "unresolved",
+          "Екатеринбург": "unresolved",
+          "Новосибирск": "unresolved",
+          "Ростов-на-Дону": "unresolved"
+        },
+        "reachableFrom": [
+          "Москва"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Горно-Алтайск": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:52:30.681Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "offers_found",
+          "Екатеринбург": "offers_found",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "unresolved"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Казань",
+          "Екатеринбург",
+          "Новосибирск"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Суздаль": {
+      "status": "unsuitable",
+      "reason": "transport_not_found_from_any_origin",
+      "checkedAt": "2026-08-05T14:52:37.957Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "unresolved",
+        "byOrigin": {
+          "Москва": "unresolved",
+          "Санкт-Петербург": "unresolved",
+          "Казань": "unresolved",
+          "Екатеринбург": "unresolved",
+          "Новосибирск": "unresolved",
+          "Ростов-на-Дону": "unresolved"
+        },
+        "reachableFrom": []
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Казань": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:52:35.914Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Екатеринбург": "offers_found",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "offers_found"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Екатеринбург",
+          "Новосибирск",
+          "Ростов-на-Дону"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Владимир": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:52:38.281Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "unresolved",
+          "Екатеринбург": "offers_found",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "unresolved"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Екатеринбург",
+          "Новосибирск"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Нижний Новгород": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:52:38.999Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "offers_found",
+          "Екатеринбург": "offers_found",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "offers_found"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Казань",
+          "Екатеринбург",
+          "Новосибирск",
+          "Ростов-на-Дону"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Кострома": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:52:45.761Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "no_offers_for_dates",
+          "Казань": "no_offers_for_dates",
+          "Екатеринбург": "offers_found",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "no_offers_for_dates"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Екатеринбург",
+          "Новосибирск"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Псков": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:52:47.049Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "no_offers_for_dates",
+          "Екатеринбург": "no_offers_for_dates",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "no_offers_for_dates"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Новосибирск"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Великий Новгород": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:52:49.685Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "offers_found",
+          "Екатеринбург": "offers_found",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "no_offers_for_dates"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Казань",
+          "Екатеринбург",
+          "Новосибирск"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Коломна": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:52:55.339Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "unresolved",
+          "Казань": "unresolved",
+          "Екатеринбург": "unresolved",
+          "Новосибирск": "unresolved",
+          "Ростов-на-Дону": "unresolved"
+        },
+        "reachableFrom": [
+          "Москва"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Тула": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:52:54.003Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "unresolved",
+          "Екатеринбург": "unresolved",
+          "Новосибирск": "unresolved",
+          "Ростов-на-Дону": "offers_found"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Ростов-на-Дону"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Самара": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:52:59.255Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "offers_found",
+          "Екатеринбург": "offers_found",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "offers_found"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Казань",
+          "Екатеринбург",
+          "Новосибирск",
+          "Ростов-на-Дону"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Рязань": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:52:59.142Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "unresolved",
+          "Екатеринбург": "unresolved",
+          "Новосибирск": "unresolved",
+          "Ростов-на-Дону": "offers_found"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Ростов-на-Дону"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Волгоград": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:53:05.831Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "offers_found",
+          "Екатеринбург": "offers_found",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "offers_found"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Казань",
+          "Екатеринбург",
+          "Новосибирск",
+          "Ростов-на-Дону"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Ярославль": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:52:42.634Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "source_unavailable",
+          "Екатеринбург": "offers_found",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "offers_found"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Екатеринбург",
+          "Новосибирск",
+          "Ростов-на-Дону"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Екатеринбург": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:53:11.974Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "offers_found",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "offers_found"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Казань",
+          "Новосибирск",
+          "Ростов-на-Дону"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Тобольск": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:53:18.488Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "offers_found",
+          "Екатеринбург": "offers_found",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "no_offers_for_dates"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Казань",
+          "Екатеринбург",
+          "Новосибирск"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Тюмень": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:53:14.865Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "offers_found",
+          "Екатеринбург": "offers_found",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "offers_found"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Казань",
+          "Екатеринбург",
+          "Новосибирск",
+          "Ростов-на-Дону"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Новосибирск": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:53:19.702Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "offers_found",
+          "Екатеринбург": "offers_found",
+          "Ростов-на-Дону": "offers_found"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Казань",
+          "Екатеринбург",
+          "Ростов-на-Дону"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Иркутск": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:53:23.599Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "offers_found",
+          "Екатеринбург": "offers_found",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "no_offers_for_dates"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Казань",
+          "Екатеринбург",
+          "Новосибирск"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Сортавала": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:53:28.542Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "unresolved",
+          "Екатеринбург": "unresolved",
+          "Новосибирск": "unresolved",
+          "Ростов-на-Дону": "unresolved"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Улан-Удэ": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:53:26.976Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "offers_found",
+          "Екатеринбург": "offers_found",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "no_offers_for_dates"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Казань",
+          "Екатеринбург",
+          "Новосибирск"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Петрозаводск": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:53:27.617Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "no_offers_for_dates",
+          "Екатеринбург": "no_offers_for_dates",
+          "Новосибирск": "no_offers_for_dates",
+          "Ростов-на-Дону": "offers_found"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Ростов-на-Дону"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Выборг": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:53:33.981Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "unresolved",
+          "Екатеринбург": "unresolved",
+          "Новосибирск": "unresolved",
+          "Ростов-на-Дону": "unresolved"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Мурманск": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:53:35.323Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "offers_found",
+          "Екатеринбург": "offers_found",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "offers_found"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Казань",
+          "Екатеринбург",
+          "Новосибирск",
+          "Ростов-на-Дону"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Санкт-Петербург": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:53:37.099Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Казань": "offers_found",
+          "Екатеринбург": "offers_found",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "offers_found"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Казань",
+          "Екатеринбург",
+          "Новосибирск",
+          "Ростов-на-Дону"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Брест": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:53:43.389Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "offers_found",
+          "Екатеринбург": "offers_found",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "no_offers_for_dates"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Казань",
+          "Екатеринбург",
+          "Новосибирск"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Гродно": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:53:48.067Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "unresolved",
+          "Екатеринбург": "unresolved",
+          "Новосибирск": "unresolved",
+          "Ростов-на-Дону": "unresolved"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Москва": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:53:36.676Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Санкт-Петербург": "offers_found",
+          "Казань": "offers_found",
+          "Екатеринбург": "offers_found",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "offers_found"
+        },
+        "reachableFrom": [
+          "Санкт-Петербург",
+          "Казань",
+          "Екатеринбург",
+          "Новосибирск",
+          "Ростов-на-Дону"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Ереван": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:53:50.618Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "offers_found",
+          "Екатеринбург": "offers_found",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "no_offers_for_dates"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Казань",
+          "Екатеринбург",
+          "Новосибирск"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Тбилиси": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:53:53.721Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "offers_found",
+          "Екатеринбург": "offers_found",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "no_offers_for_dates"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Казань",
+          "Екатеринбург",
+          "Новосибирск"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Баку": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:53:53.933Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "offers_found",
+          "Екатеринбург": "offers_found",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "no_offers_for_dates"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Казань",
+          "Екатеринбург",
+          "Новосибирск"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Минск": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:53:39.604Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "source_unavailable",
+          "Екатеринбург": "offers_found",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "offers_found"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Екатеринбург",
+          "Новосибирск",
+          "Ростов-на-Дону"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Алматы": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:54:06.569Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "offers_found",
+          "Екатеринбург": "offers_found",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "no_offers_for_dates"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Казань",
+          "Екатеринбург",
+          "Новосибирск"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Ташкент": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:54:11.708Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "offers_found",
+          "Екатеринбург": "offers_found",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "no_offers_for_dates"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Казань",
+          "Екатеринбург",
+          "Новосибирск"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Астана": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:54:07.476Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "offers_found",
+          "Екатеринбург": "offers_found",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "no_offers_for_dates"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Казань",
+          "Екатеринбург",
+          "Новосибирск"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Бишкек": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:54:09.247Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "no_offers_for_dates",
+          "Екатеринбург": "no_offers_for_dates",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "no_offers_for_dates"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Новосибирск"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    },
+    "Самарканд": {
+      "status": "suitable",
+      "checkedAt": "2026-08-05T14:54:21.883Z",
+      "window": {
+        "checkIn": "2026-09-15",
+        "checkOut": "2026-09-19"
+      },
+      "transport": {
+        "status": "offers_found",
+        "byOrigin": {
+          "Москва": "offers_found",
+          "Санкт-Петербург": "offers_found",
+          "Казань": "offers_found",
+          "Екатеринбург": "offers_found",
+          "Новосибирск": "offers_found",
+          "Ростов-на-Дону": "no_offers_for_dates"
+        },
+        "reachableFrom": [
+          "Москва",
+          "Санкт-Петербург",
+          "Казань",
+          "Екатеринбург",
+          "Новосибирск"
+        ]
+      },
+      "hotels": {
+        "status": "offers_found"
+      }
+    }
+  }
+}
