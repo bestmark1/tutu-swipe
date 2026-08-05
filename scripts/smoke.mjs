@@ -18,7 +18,17 @@ const READY_TIMEOUT_MS = 60_000;
 // Критические пути проекта. Добавляй сюда маршруты по мере появления фич:
 // проверяется код ответа и то, что в HTML есть ожидаемый маркер.
 const ROUTES = [
-  { path: "/", status: 200, contains: "<body" },
+  { path: "/", status: 200, contains: "Куда отправимся?" },
+  {
+    path: "/api/search",
+    status: 400,
+    contains: '"code":"empty_input"',
+    request: {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ input: "" }),
+    },
+  },
 ];
 
 let server = null;
@@ -99,6 +109,7 @@ async function probeRoutes() {
     let response;
     try {
       response = await fetch(BASE + route.path, {
+        ...route.request,
         signal: AbortSignal.timeout(10_000),
       });
     } catch (error) {
