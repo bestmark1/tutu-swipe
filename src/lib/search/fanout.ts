@@ -16,8 +16,11 @@ import {
 import type {
   CandidateErrorReason,
   SearchCard,
-  SearchEvent,
 } from "./stream";
+import {
+  loadSnapshot,
+  type SnapshotSearchCard,
+} from "./snapshot";
 
 const DEFAULT_CONCURRENCY = 4;
 const DEFAULT_TARGET_POOL_SIZE = 5;
@@ -37,12 +40,44 @@ export interface FanOutSearchOptions {
   candidates: readonly Pick<DestinationCandidate, "name">[];
   query: DiscoveryQuery;
   client?: SearchClient;
+  snapshotPath?: string;
   signal?: AbortSignal;
   totalBudgetMs?: number;
   candidateBudgetRatio?: number;
   concurrency?: number;
   targetPoolSize?: number;
 }
+
+export type LiveSearchCard = SearchCard & {
+  source: "live";
+  isNewDestination?: true;
+};
+
+export type FanOutSearchCard = SnapshotSearchCard | LiveSearchCard;
+
+export type FanOutSearchEvent =
+  | {
+      type: "card";
+      eventId: string;
+      destination: string;
+      card: FanOutSearchCard;
+      source: "snapshot" | "live";
+      update: "append" | "replace";
+      replacesEventId?: string;
+      isNewDestination?: true;
+    }
+  | {
+      type: "candidate_error";
+      destination: string;
+      reason: CandidateErrorReason;
+    }
+  | { type: "done"; pool: FanOutSearchCard[] }
+  | {
+      type: "aborted";
+      reason: "request_aborted" | "budget_exhausted";
+      pool: FanOutSearchCard[];
+    }
+  | { type: "unavailable"; pool: FanOutSearchCard[] };
 
 type SourceState = "available" | "indeterminate" | "unavailable";
 
@@ -66,7 +101,7 @@ interface ActiveResult {
 
 export async function* fanOutSearch(
   options: FanOutSearchOptions,
-): AsyncGenerator<SearchEvent> {
+): AsyncGenerator<FanOutSearchEvent> {
   const concurrency = positiveInteger(
     options.concurrency ?? DEFAULT_CONCURRENCY,
     "concurrency",
@@ -75,6 +110,29 @@ export async function* fanOutSearch(
     options.targetPoolSize ?? DEFAULT_TARGET_POOL_SIZE,
     "targetPoolSize",
   );
+  const snapshot = loadSnapshot({ filePath: options.snapshotPath });
+  const poolByDestination = new Map<string, FanOutSearchCard>();
+  const snapshotEventIds = new Map<string, string>();
+
+  for (const [index, candidate] of options.candidates.entries()) {
+    const card = snapshot.getCard(options.query.origin, candidate.name);
+    if (!card) continue;
+
+    const eventId = `snapshot-card-${index + 1}`;
+    const destinationKey = normalizeDestination(candidate.name);
+    snapshotEventIds.set(destinationKey, eventId);
+    poolByDestination.set(destinationKey, card);
+    yield {
+      type: "card",
+      eventId,
+      destination: candidate.name,
+      card,
+      source: "snapshot",
+      update: "append",
+    };
+  }
+
+  // The live branch starts only after snapshot events have been consumed.
   const budget = new SearchBudget(
     options.totalBudgetMs ?? DEFAULT_SEARCH_BUDGET_MS,
     options.candidateBudgetRatio ?? DEFAULT_CANDIDATE_BUDGET_RATIO,
@@ -82,12 +140,12 @@ export async function* fanOutSearch(
   const client = options.client ?? createMcpClient();
   const requestController = new AbortController();
   const requestSignal = requestController.signal;
-  const pool: SearchCard[] = [];
   const active = new Map<number, Promise<ActiveResult>>();
   let nextCandidateIndex = 0;
   let stopReason: StopReason | undefined;
   let completedCandidates = 0;
   let whollyUnavailableCandidates = 0;
+  let liveCardCount = 0;
 
   const abortFromCaller = () => {
     if (stopReason === undefined) stopReason = "request_aborted";
@@ -161,9 +219,18 @@ export async function* fanOutSearch(
       }
 
       if (completed.result.status === "card") {
-        pool.push(completed.result.card);
+        const destinationKey = normalizeDestination(destination);
+        const replacesEventId = snapshotEventIds.get(destinationKey);
+        const isNewDestination = replacesEventId === undefined;
+        const card: LiveSearchCard = {
+          ...completed.result.card,
+          source: "live",
+          ...(isNewDestination ? { isNewDestination: true } : {}),
+        };
+        poolByDestination.set(destinationKey, card);
+        liveCardCount += 1;
         if (
-          pool.length >= targetPoolSize &&
+          liveCardCount >= targetPoolSize &&
           (active.size > 0 || nextCandidateIndex < options.candidates.length)
         ) {
           stopReason = "pool_complete";
@@ -173,7 +240,11 @@ export async function* fanOutSearch(
           type: "card",
           eventId: `card-${completed.index + 1}`,
           destination,
-          card: completed.result.card,
+          card,
+          source: "live",
+          update: replacesEventId ? "replace" : "append",
+          ...(replacesEventId ? { replacesEventId } : {}),
+          ...(isNewDestination ? { isNewDestination: true } : {}),
         };
       } else {
         yield {
@@ -193,20 +264,24 @@ export async function* fanOutSearch(
       stopReason === "request_aborted" ||
       stopReason === "budget_exhausted"
     ) {
-      yield { type: "aborted", reason: stopReason, pool };
+      yield {
+        type: "aborted",
+        reason: stopReason,
+        pool: [...poolByDestination.values()],
+      };
       return;
     }
 
     if (
-      pool.length === 0 &&
+      liveCardCount === 0 &&
       completedCandidates > 0 &&
       completedCandidates === whollyUnavailableCandidates
     ) {
-      yield { type: "unavailable", pool };
+      yield { type: "unavailable", pool: [...poolByDestination.values()] };
       return;
     }
 
-    yield { type: "done", pool };
+    yield { type: "done", pool: [...poolByDestination.values()] };
   } finally {
     clearTimeout(requestTimeout);
     options.signal?.removeEventListener("abort", abortFromCaller);
@@ -495,4 +570,8 @@ function positiveInteger(value: number, name: string): number {
     throw new TypeError(`${name} must be a positive integer`);
   }
   return value;
+}
+
+function normalizeDestination(value: string): string {
+  return value.normalize("NFKC").trim().toLowerCase().replaceAll("ё", "е");
 }
