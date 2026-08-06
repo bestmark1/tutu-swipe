@@ -1,6 +1,13 @@
 import { searchOnce, type SearchOnceResult } from "@/lib/usecases/search-once";
+import {
+  prepareSearchStream,
+  streamEventId,
+} from "@/lib/usecases/search-stream";
 
 export const maxDuration = 60;
+
+const STREAM_MEDIA_TYPE = "application/x-ndjson";
+const MAX_RESUME_EVENT_IDS = 256;
 
 export async function POST(request: Request): Promise<Response> {
   const body = await readJsonObject(request);
@@ -27,8 +34,79 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
+  if (request.headers.get("accept")?.includes(STREAM_MEDIA_TYPE)) {
+    const receivedEventIds = readReceivedEventIds(body.receivedEventIds);
+    if (!receivedEventIds) {
+      return Response.json(
+        {
+          status: "error",
+          code: "invalid_resume_cursor",
+          message: "Список полученных событий имеет неверный формат.",
+        },
+        { status: 400 },
+      );
+    }
+    return streamSearch(input, receivedEventIds, request.signal);
+  }
+
   const result = await searchOnce(input, { signal: request.signal });
   return Response.json(result, { status: httpStatus(result) });
+}
+
+async function streamSearch(
+  input: string,
+  receivedEventIds: Set<string>,
+  signal: AbortSignal,
+): Promise<Response> {
+  const prepared = await prepareSearchStream(input, {
+    fanOut: { signal },
+  });
+  if (prepared.status !== "ready") {
+    return Response.json(prepared, { status: 422 });
+  }
+
+  const iterator = prepared.events[Symbol.asyncIterator]();
+  const encoder = new TextEncoder();
+  let closed = false;
+  const body = new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      if (closed) return;
+      try {
+        let next = await iterator.next();
+        while (!next.done && receivedEventIds.has(streamEventId(next.value))) {
+          next = await iterator.next();
+        }
+        if (next.done) {
+          closed = true;
+          controller.close();
+          return;
+        }
+        const event = next.value;
+        const streamEvent =
+          event.type === "card"
+            ? event
+            : { ...event, eventId: streamEventId(event) };
+        controller.enqueue(
+          encoder.encode(`${JSON.stringify(streamEvent)}\n`),
+        );
+      } catch (error) {
+        closed = true;
+        controller.error(error);
+      }
+    },
+    async cancel() {
+      closed = true;
+      await iterator.return?.(undefined);
+    },
+  });
+
+  return new Response(body, {
+    headers: {
+      "cache-control": "no-cache, no-transform",
+      "content-type": `${STREAM_MEDIA_TYPE}; charset=utf-8`,
+      "x-accel-buffering": "no",
+    },
+  });
 }
 
 async function readJsonObject(
@@ -50,4 +128,23 @@ function httpStatus(result: SearchOnceResult): number {
     return 422;
   }
   return 200;
+}
+
+function readReceivedEventIds(value: unknown): Set<string> | undefined {
+  if (value === undefined) return new Set();
+  if (!Array.isArray(value) || value.length > MAX_RESUME_EVENT_IDS) {
+    return undefined;
+  }
+  const eventIds = new Set<string>();
+  for (const eventId of value) {
+    if (
+      typeof eventId !== "string" ||
+      eventId.length === 0 ||
+      eventId.length > 512
+    ) {
+      return undefined;
+    }
+    eventIds.add(eventId);
+  }
+  return eventIds;
 }
