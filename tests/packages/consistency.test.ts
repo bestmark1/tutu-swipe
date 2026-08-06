@@ -18,7 +18,7 @@ function fixtureSearches() {
   return { transport: transport.data, hotel: hotel.data };
 }
 
-function cardWithArrival(arrivalAt: string) {
+function cardWithArrival(arrivalAt: string | undefined) {
   const { transport, hotel } = fixtureSearches();
   const result = buildTripCard(
     {
@@ -64,6 +64,21 @@ describe("trip card consistency", () => {
       [],
     );
   });
+
+  it("AC14 and constitution rule 1: does not infer local time from UTC", () => {
+    expect(cardWithArrival("2026-09-12T23:30:00Z").warnings).toEqual([]);
+  });
+
+  it("AC14 and constitution rule 1: does not infer local time without an offset", () => {
+    expect(cardWithArrival("2026-09-12T23:30:00").warnings).toEqual([]);
+  });
+
+  it.each(["", undefined])(
+    "AC14 and constitution rule 1: does not warn when arrival time is %s",
+    (arrivalAt) => {
+      expect(cardWithArrival(arrivalAt).warnings).toEqual([]);
+    },
+  );
 
   it("AC14: warns about a departure before 08:00", () => {
     const { transport, hotel } = fixtureSearches();

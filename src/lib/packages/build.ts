@@ -226,7 +226,9 @@ function consistencyWarnings(
 }
 
 function localMinutesSinceMidnight(isoDateTime: string | undefined) {
-  if (isoDateTime === undefined) return undefined;
+  if (isoDateTime === undefined || !/[+-]\d{2}:\d{2}$/.test(isoDateTime)) {
+    return undefined;
+  }
   const match = /T(\d{2}):(\d{2})/.exec(isoDateTime);
   if (!match) return undefined;
 
