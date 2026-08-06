@@ -6,6 +6,8 @@ export interface MoneyInput {
 export interface TransportOfferInput {
   price: MoneyInput;
   legs?: readonly { label?: string }[];
+  departureAt?: string;
+  arrivalAt?: string;
 }
 
 export interface AccommodationPriceInput {
@@ -17,10 +19,20 @@ export interface HotelOfferInput {
   bestOffer?: AccommodationPriceInput;
 }
 
+export interface SelectedDestinationInput {
+  name: string;
+  region?: string | null;
+  alsoNamed?: readonly string[];
+  also_named?: readonly string[];
+}
+
 export interface TransportSearchInput<
   TTransport extends TransportOfferInput = TransportOfferInput,
 > {
   variants: readonly TTransport[];
+  meta?: {
+    to?: SelectedDestinationInput;
+  };
 }
 
 export interface HotelSearchInput<THotel extends HotelOfferInput = HotelOfferInput> {
@@ -48,6 +60,23 @@ export interface TripCardPrice {
   };
 }
 
+export type TripCardWarningCode =
+  | "early_arrival"
+  | "late_arrival"
+  | "early_departure";
+
+export interface TripCardWarning {
+  code: TripCardWarningCode;
+  message: string;
+  computed: true;
+}
+
+export interface SelectedDestination {
+  name: string;
+  region: string | null;
+  alsoNamed?: readonly string[];
+}
+
 export interface TripCard<
   TTransport extends TransportOfferInput = TransportOfferInput,
   THotel extends HotelOfferInput = HotelOfferInput,
@@ -56,7 +85,12 @@ export interface TripCard<
   hotel: THotel & { bestOffer: AccommodationPriceInput };
   stay?: HotelSearchInput["stay"];
   price: TripCardPrice;
+  warnings: TripCardWarning[];
+  selectedDestination?: SelectedDestination;
 }
+
+const EARLIEST_CONVENIENT_TIME_HOUR = 8;
+const LATEST_CONVENIENT_ARRIVAL_HOUR = 22;
 
 export type TripCardSkipReason =
   | "no_transport_offers"
@@ -127,6 +161,8 @@ export function buildTripCard<
       transport,
       hotel,
       stay: hotelSearch.stay,
+      warnings: consistencyWarnings(transport),
+      selectedDestination: selectedDestination(transportSearch.meta?.to),
       price: {
         total: {
           amount: addPriceAmounts(
@@ -149,6 +185,71 @@ export function buildTripCard<
         },
       },
     },
+  };
+}
+
+function consistencyWarnings(
+  transport: TransportOfferInput,
+): TripCardWarning[] {
+  const warnings: TripCardWarning[] = [];
+  const arrivalMinutes = localMinutesSinceMidnight(transport.arrivalAt);
+  const departureMinutes = localMinutesSinceMidnight(transport.departureAt);
+  const earlyTimeMinutes = EARLIEST_CONVENIENT_TIME_HOUR * 60;
+  const lateArrivalMinutes = LATEST_CONVENIENT_ARRIVAL_HOUR * 60;
+
+  if (arrivalMinutes !== undefined && arrivalMinutes < earlyTimeMinutes) {
+    warnings.push({
+      code: "early_arrival",
+      message: `Раннее прибытие: заселение до ${formatHour(EARLIEST_CONVENIENT_TIME_HOUR)} может быть недоступно`,
+      computed: true,
+    });
+  } else if (
+    arrivalMinutes !== undefined &&
+    arrivalMinutes > lateArrivalMinutes
+  ) {
+    warnings.push({
+      code: "late_arrival",
+      message: `Позднее прибытие: заселение после ${formatHour(LATEST_CONVENIENT_ARRIVAL_HOUR)} может быть недоступно`,
+      computed: true,
+    });
+  }
+
+  if (departureMinutes !== undefined && departureMinutes < earlyTimeMinutes) {
+    warnings.push({
+      code: "early_departure",
+      message: `Ранний отъезд: выселение до ${formatHour(EARLIEST_CONVENIENT_TIME_HOUR)} может быть затруднено`,
+      computed: true,
+    });
+  }
+
+  return warnings;
+}
+
+function localMinutesSinceMidnight(isoDateTime: string | undefined) {
+  if (isoDateTime === undefined) return undefined;
+  const match = /T(\d{2}):(\d{2})/.exec(isoDateTime);
+  if (!match) return undefined;
+
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (hours > 23 || minutes > 59) return undefined;
+  return hours * 60 + minutes;
+}
+
+function formatHour(hour: number): string {
+  return `${String(hour).padStart(2, "0")}:00`;
+}
+
+function selectedDestination(
+  destination: SelectedDestinationInput | undefined,
+): SelectedDestination | undefined {
+  if (!destination) return undefined;
+  const alsoNamed = destination.alsoNamed ?? destination.also_named;
+
+  return {
+    name: destination.name,
+    region: destination.region ?? null,
+    ...(alsoNamed === undefined ? {} : { alsoNamed }),
   };
 }
 
