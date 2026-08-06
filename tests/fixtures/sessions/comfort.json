@@ -1,0 +1,141 @@
+{
+  "schemaVersion": 1,
+  "id": "comfort",
+  "profile": "Любитель комфорта",
+  "description": "Лайкает жильё с лучшим сочетанием звёзд и рейтинга и отклоняет худшее как «не тот отель».",
+  "context": {
+    "budget": 100000
+  },
+  "reactions": [
+    {
+      "id": "comfort-01",
+      "cardId": "be8750410c6bf2907b8cf130cffe1c9d",
+      "occurredAt": "2026-08-06T09:00:00.000Z",
+      "type": "like"
+    },
+    {
+      "id": "comfort-02",
+      "cardId": "84084e6c09e5427d2aa8caf0f00f3126+4412002cf4c2c0535e690c8fae828b4d",
+      "occurredAt": "2026-08-06T09:01:00.000Z",
+      "type": "dislike",
+      "reason": "wrong_hotel"
+    },
+    {
+      "id": "comfort-03",
+      "cardId": "b108c27f1b6ef9dfc1af20afcffbc19f",
+      "occurredAt": "2026-08-06T09:02:00.000Z",
+      "type": "like"
+    },
+    {
+      "id": "comfort-04",
+      "cardId": "868ea2a934a75aa2bf747b8e8c017ce2",
+      "occurredAt": "2026-08-06T09:03:00.000Z",
+      "type": "dislike",
+      "reason": "wrong_hotel"
+    },
+    {
+      "id": "comfort-05",
+      "cardId": "b07d2039152f3e4423bae7b1fae7f959+d3999e3e67a734acc3ad2ca7db33aea1",
+      "occurredAt": "2026-08-06T09:04:00.000Z",
+      "type": "like"
+    },
+    {
+      "id": "comfort-06",
+      "cardId": "4269f90af174d13933ddfbd5497dfcbb",
+      "occurredAt": "2026-08-06T09:05:00.000Z",
+      "type": "dislike",
+      "reason": "wrong_hotel"
+    },
+    {
+      "id": "comfort-07",
+      "cardId": "536844e29ed552a0351cd1f9a8acbe11+2cc938f713907b2b8036ba04b90e1ba2",
+      "occurredAt": "2026-08-06T09:06:00.000Z",
+      "type": "like"
+    },
+    {
+      "id": "comfort-08",
+      "cardId": "dfaccfc6e8af02d0271698f5121e2482",
+      "occurredAt": "2026-08-06T09:07:00.000Z",
+      "type": "dislike",
+      "reason": "wrong_hotel"
+    },
+    {
+      "id": "comfort-09",
+      "cardId": "c05dff943c05ecdc15db84db5062a325",
+      "occurredAt": "2026-08-06T09:08:00.000Z",
+      "type": "like"
+    },
+    {
+      "id": "comfort-10",
+      "cardId": "fcecd459efdd02d960201c1aa65ad378",
+      "occurredAt": "2026-08-06T09:09:00.000Z",
+      "type": "dislike",
+      "reason": "wrong_hotel"
+    },
+    {
+      "id": "comfort-11",
+      "cardId": "1d92d44228648c00bd4186176a53c26c",
+      "occurredAt": "2026-08-06T09:10:00.000Z",
+      "type": "like"
+    },
+    {
+      "id": "comfort-12",
+      "cardId": "57a3927f05c87d1b350e912d5ab7ee24+752fe8f2973b0431584f05b83b19af15",
+      "occurredAt": "2026-08-06T09:11:00.000Z",
+      "type": "dislike",
+      "reason": "wrong_hotel"
+    },
+    {
+      "id": "comfort-13",
+      "cardId": "2756441fc284aacf264eccb8f2034e35+62c1100067d4fdb6ee8659fde2d2b3d5",
+      "occurredAt": "2026-08-06T09:12:00.000Z",
+      "type": "like"
+    },
+    {
+      "id": "comfort-14",
+      "cardId": "2fd12106ffe6e445a5ee2dd2ecb37465",
+      "occurredAt": "2026-08-06T09:13:00.000Z",
+      "type": "dislike",
+      "reason": "wrong_hotel"
+    },
+    {
+      "id": "comfort-15",
+      "cardId": "374d56130d60ad2a570b20398817dfcf",
+      "occurredAt": "2026-08-06T09:14:00.000Z",
+      "type": "like"
+    },
+    {
+      "id": "comfort-16",
+      "cardId": "2488dad7bbbbdf68b3e86b6805c4961e",
+      "occurredAt": "2026-08-06T09:15:00.000Z",
+      "type": "dislike",
+      "reason": "wrong_hotel"
+    },
+    {
+      "id": "comfort-17",
+      "cardId": "c0481c006cae1bac1ec0c7cd3876ad81+4bfaeaa05fb6c6bfdcf545e87d951f0d",
+      "occurredAt": "2026-08-06T09:16:00.000Z",
+      "type": "like"
+    },
+    {
+      "id": "comfort-18",
+      "cardId": "8765eb6003d2988d3a00bd8bcdd55776",
+      "occurredAt": "2026-08-06T09:17:00.000Z",
+      "type": "dislike",
+      "reason": "wrong_hotel"
+    },
+    {
+      "id": "comfort-19",
+      "cardId": "5ddf496d4c358be2e09f459bcd8a5dd1",
+      "occurredAt": "2026-08-06T09:18:00.000Z",
+      "type": "like"
+    },
+    {
+      "id": "comfort-20",
+      "cardId": "f404b33469bc3a88d21aa620b644f792",
+      "occurredAt": "2026-08-06T09:19:00.000Z",
+      "type": "dislike",
+      "reason": "wrong_hotel"
+    }
+  ]
+}

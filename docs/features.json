@@ -214,7 +214,7 @@
       "id": "F16",
       "behavior": "Протокол воспроизведения сравнивает реализации ранжировщика на зафиксированном снимке пула; отчёт с датой лежит в docs/ranking-baseline.md",
       "verification": "npx vitest run tests/ranking/replay.test.ts",
-      "state": "not_started",
+      "state": "active",
       "phase": 3
     },
     {

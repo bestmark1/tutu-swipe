@@ -1,0 +1,141 @@
+{
+  "schemaVersion": 1,
+  "id": "economy",
+  "profile": "Экономный",
+  "description": "Лайкает самые дешёвые поездки и отмечает самые дорогие причиной «дорого».",
+  "context": {
+    "budget": 100000
+  },
+  "reactions": [
+    {
+      "id": "economy-01",
+      "cardId": "0afdad012e3c01d3ac9c9454a7cf8b7f",
+      "occurredAt": "2026-08-06T09:00:00.000Z",
+      "type": "like"
+    },
+    {
+      "id": "economy-02",
+      "cardId": "06963d5d1629166dc0628b2b45e01fcc+7dc824f7b79800d3ee58fad5727d145b",
+      "occurredAt": "2026-08-06T09:01:00.000Z",
+      "type": "dislike",
+      "reason": "too_expensive"
+    },
+    {
+      "id": "economy-03",
+      "cardId": "0515ab401e08053a30fb13d12ee14456",
+      "occurredAt": "2026-08-06T09:02:00.000Z",
+      "type": "like"
+    },
+    {
+      "id": "economy-04",
+      "cardId": "83b90cc9008a7ef1fecd5d4b307be56f+7440b38e0217aff96e54c8102dc17ac7",
+      "occurredAt": "2026-08-06T09:03:00.000Z",
+      "type": "dislike",
+      "reason": "too_expensive"
+    },
+    {
+      "id": "economy-05",
+      "cardId": "e9bae67933776e906880ae6c4aaf1929",
+      "occurredAt": "2026-08-06T09:04:00.000Z",
+      "type": "like"
+    },
+    {
+      "id": "economy-06",
+      "cardId": "d0a157c94017e54915d07f5b09b95b8f+d3999e3e67a734acc3ad2ca7db33aea1",
+      "occurredAt": "2026-08-06T09:05:00.000Z",
+      "type": "dislike",
+      "reason": "too_expensive"
+    },
+    {
+      "id": "economy-07",
+      "cardId": "c77823e61499f1c5e8a13b5b34ee3e29",
+      "occurredAt": "2026-08-06T09:06:00.000Z",
+      "type": "like"
+    },
+    {
+      "id": "economy-08",
+      "cardId": "d3ce4f3f8106c0de4bd8ee1d89d96895+56460dabaad4bbec87d3c65418a1861a",
+      "occurredAt": "2026-08-06T09:07:00.000Z",
+      "type": "dislike",
+      "reason": "too_expensive"
+    },
+    {
+      "id": "economy-09",
+      "cardId": "90a3f78482d935e06e97efc9e0d9dd6c",
+      "occurredAt": "2026-08-06T09:08:00.000Z",
+      "type": "like"
+    },
+    {
+      "id": "economy-10",
+      "cardId": "1793e0985f420989d6afd0740cbf14aa+8e1e29d63a9a67872dfc8fbe2dc705c8",
+      "occurredAt": "2026-08-06T09:09:00.000Z",
+      "type": "dislike",
+      "reason": "too_expensive"
+    },
+    {
+      "id": "economy-11",
+      "cardId": "dc0dbdbae50c2bc2cefe9127b4d10f6f",
+      "occurredAt": "2026-08-06T09:10:00.000Z",
+      "type": "like"
+    },
+    {
+      "id": "economy-12",
+      "cardId": "60151d0352c2f213fd4c50bb4268a3b2+a6b9f907841fe96ab69bee485224ccc1",
+      "occurredAt": "2026-08-06T09:11:00.000Z",
+      "type": "dislike",
+      "reason": "too_expensive"
+    },
+    {
+      "id": "economy-13",
+      "cardId": "693854f7bbb4b54e88032a3ac3ddc40d",
+      "occurredAt": "2026-08-06T09:12:00.000Z",
+      "type": "like"
+    },
+    {
+      "id": "economy-14",
+      "cardId": "6555b2f021066212091642574fc2c68a+189944cb7c05ac7c988789aec3abfcec",
+      "occurredAt": "2026-08-06T09:13:00.000Z",
+      "type": "dislike",
+      "reason": "too_expensive"
+    },
+    {
+      "id": "economy-15",
+      "cardId": "612faf005c6fd96e89e37ac14b627c31",
+      "occurredAt": "2026-08-06T09:14:00.000Z",
+      "type": "like"
+    },
+    {
+      "id": "economy-16",
+      "cardId": "a1f2b08fdf6fa51616a0c42e2d39d177",
+      "occurredAt": "2026-08-06T09:15:00.000Z",
+      "type": "dislike",
+      "reason": "too_expensive"
+    },
+    {
+      "id": "economy-17",
+      "cardId": "2488dad7bbbbdf68b3e86b6805c4961e",
+      "occurredAt": "2026-08-06T09:16:00.000Z",
+      "type": "like"
+    },
+    {
+      "id": "economy-18",
+      "cardId": "8d29d3e170f0a286401175705f3acf77+752fe8f2973b0431584f05b83b19af15",
+      "occurredAt": "2026-08-06T09:17:00.000Z",
+      "type": "dislike",
+      "reason": "too_expensive"
+    },
+    {
+      "id": "economy-19",
+      "cardId": "814b76c6fe7b97d2bd9d34627d4d4f85",
+      "occurredAt": "2026-08-06T09:18:00.000Z",
+      "type": "like"
+    },
+    {
+      "id": "economy-20",
+      "cardId": "2756441fc284aacf264eccb8f2034e35+ba9cf0847b7b038a61f0721d0bff5efc",
+      "occurredAt": "2026-08-06T09:19:00.000Z",
+      "type": "dislike",
+      "reason": "too_expensive"
+    }
+  ]
+}

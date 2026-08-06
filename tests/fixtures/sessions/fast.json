@@ -1,0 +1,141 @@
+{
+  "schemaVersion": 1,
+  "id": "fast",
+  "profile": "Торопливый",
+  "description": "Лайкает поездки с самой короткой дорогой и отмечает самые долгие причиной «долго добираться».",
+  "context": {
+    "budget": 100000
+  },
+  "reactions": [
+    {
+      "id": "fast-01",
+      "cardId": "41c209846545ee0804712657c26d7b55",
+      "occurredAt": "2026-08-06T09:00:00.000Z",
+      "type": "like"
+    },
+    {
+      "id": "fast-02",
+      "cardId": "0aea08bc0343b9e937d5567eff544a22",
+      "occurredAt": "2026-08-06T09:01:00.000Z",
+      "type": "dislike",
+      "reason": "too_long"
+    },
+    {
+      "id": "fast-03",
+      "cardId": "c0481c006cae1bac1ec0c7cd3876ad81",
+      "occurredAt": "2026-08-06T09:02:00.000Z",
+      "type": "like"
+    },
+    {
+      "id": "fast-04",
+      "cardId": "5a692b595ff9930c91f578757252df8c",
+      "occurredAt": "2026-08-06T09:03:00.000Z",
+      "type": "dislike",
+      "reason": "too_long"
+    },
+    {
+      "id": "fast-05",
+      "cardId": "442fd1bfda680d2371364f58cf38dc8e",
+      "occurredAt": "2026-08-06T09:04:00.000Z",
+      "type": "like"
+    },
+    {
+      "id": "fast-06",
+      "cardId": "b37e52976ecb6c9b74ae8b9a756e6181",
+      "occurredAt": "2026-08-06T09:05:00.000Z",
+      "type": "dislike",
+      "reason": "too_long"
+    },
+    {
+      "id": "fast-07",
+      "cardId": "5d3cf4644184452f63b366f697b1a483",
+      "occurredAt": "2026-08-06T09:06:00.000Z",
+      "type": "like"
+    },
+    {
+      "id": "fast-08",
+      "cardId": "b93d514d5a122171b2f56a6b9c47fb66",
+      "occurredAt": "2026-08-06T09:07:00.000Z",
+      "type": "dislike",
+      "reason": "too_long"
+    },
+    {
+      "id": "fast-09",
+      "cardId": "0afdad012e3c01d3ac9c9454a7cf8b7f",
+      "occurredAt": "2026-08-06T09:08:00.000Z",
+      "type": "like"
+    },
+    {
+      "id": "fast-10",
+      "cardId": "482c598aed064235d050cad8a9cc1480",
+      "occurredAt": "2026-08-06T09:09:00.000Z",
+      "type": "dislike",
+      "reason": "too_long"
+    },
+    {
+      "id": "fast-11",
+      "cardId": "3b2cc15d93186218e6e94b126dfb19ac",
+      "occurredAt": "2026-08-06T09:10:00.000Z",
+      "type": "like"
+    },
+    {
+      "id": "fast-12",
+      "cardId": "eb74eb7db68835dc7325ff777093fe9e",
+      "occurredAt": "2026-08-06T09:11:00.000Z",
+      "type": "dislike",
+      "reason": "too_long"
+    },
+    {
+      "id": "fast-13",
+      "cardId": "374d56130d60ad2a570b20398817dfcf",
+      "occurredAt": "2026-08-06T09:12:00.000Z",
+      "type": "like"
+    },
+    {
+      "id": "fast-14",
+      "cardId": "65d273c0d8238f5687e82ca55578658a",
+      "occurredAt": "2026-08-06T09:13:00.000Z",
+      "type": "dislike",
+      "reason": "too_long"
+    },
+    {
+      "id": "fast-15",
+      "cardId": "411df4bf82de48d7ea6d824607ea7fad+b96f42ac0e3eb14436bc3a1189fbf3c9",
+      "occurredAt": "2026-08-06T09:14:00.000Z",
+      "type": "like"
+    },
+    {
+      "id": "fast-16",
+      "cardId": "ae9088e5aa9c713b2947690575f455f2",
+      "occurredAt": "2026-08-06T09:15:00.000Z",
+      "type": "dislike",
+      "reason": "too_long"
+    },
+    {
+      "id": "fast-17",
+      "cardId": "6a382c8127d2ccf88d71b61fb1e5ca8f",
+      "occurredAt": "2026-08-06T09:16:00.000Z",
+      "type": "like"
+    },
+    {
+      "id": "fast-18",
+      "cardId": "05971bd117314ba2bb6524891a43a64d",
+      "occurredAt": "2026-08-06T09:17:00.000Z",
+      "type": "dislike",
+      "reason": "too_long"
+    },
+    {
+      "id": "fast-19",
+      "cardId": "f88b89bc7bc45aa369d73e35f617b654",
+      "occurredAt": "2026-08-06T09:18:00.000Z",
+      "type": "like"
+    },
+    {
+      "id": "fast-20",
+      "cardId": "b15c6f02f275205ee643a05a170d3027",
+      "occurredAt": "2026-08-06T09:19:00.000Z",
+      "type": "dislike",
+      "reason": "too_long"
+    }
+  ]
+}
