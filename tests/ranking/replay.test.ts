@@ -12,6 +12,7 @@ import {
   parseReplaySession,
   parseReplaySnapshot,
   runReplaySession,
+  splitReplayReactions,
   type ReplaySession,
 } from "@/lib/ranking/replay";
 import type { RankableCard } from "@/lib/ranking";
@@ -37,6 +38,67 @@ describe("F16: ranking replay protocol", () => {
     expect(second).toEqual(first);
   });
 
+  it("splits each session chronologically into the first 70% for training and the rest for held-out evaluation", () => {
+    const session = sessionById("economy");
+    const split = splitReplayReactions(session.reactions);
+
+    expect(split.training).toEqual(session.reactions.slice(0, 14));
+    expect(split.heldOut).toEqual(session.reactions.slice(14));
+    expect(split.training).toHaveLength(14);
+    expect(split.heldOut).toHaveLength(6);
+  });
+
+  it("does not use held-out reactions to train learned modes", () => {
+    const session = sessionById("fast");
+    const changedHeldOut = structuredClone(session);
+    const heldOutCardIds = changedHeldOut.reactions
+      .slice(14)
+      .map(({ cardId }) => cardId)
+      .reverse();
+    changedHeldOut.reactions = changedHeldOut.reactions.map(
+      (reaction, index) =>
+        index < 14
+          ? reaction
+          : { ...reaction, cardId: heldOutCardIds[index - 14]! },
+    );
+
+    const original = runReplaySession(snapshot, session, SEEDS);
+    const changed = runReplaySession(snapshot, changedHeldOut, SEEDS);
+
+    for (const mode of ["bayesian", "rules"] as const) {
+      expect(evaluation(original, mode, "heldOut").rankedCardIds).toEqual(
+        evaluation(changed, mode, "heldOut").rankedCardIds,
+      );
+    }
+  });
+
+  it("calculates held-out metrics only from likes after the split", () => {
+    const session = sessionById("comfort");
+    const split = splitReplayReactions(session.reactions);
+    const result = runReplaySession(snapshot, session, SEEDS);
+
+    expect(result.trainingReactionCount).toBe(14);
+    expect(result.heldOutReactionCount).toBe(6);
+    expect(result.heldOutLikedCardCount).toBe(3);
+
+    for (const mode of REPLAY_MODES) {
+      const heldOut = evaluation(result, mode, "heldOut");
+      const cardsById = new Map(snapshot.cards.map((card) => [card.id, card]));
+      const ranking = heldOut.rankedCardIds.map((cardId) =>
+        cardsById.get(cardId),
+      );
+
+      expect(ranking.every((card) => card !== undefined)).toBe(true);
+      expect(heldOut.averageLikedPosition).toBe(
+        averageLikedPosition(
+          ranking as (typeof snapshot.cards)[number][],
+          split.heldOut,
+        ).average,
+      );
+      expect(heldOut.likedPositions).toHaveLength(3);
+    }
+  });
+
   it("runs every mode on the same checked-in 227-card snapshot", () => {
     const result = runReplaySession(snapshot, sessions[1]!, SEEDS);
 
@@ -49,9 +111,13 @@ describe("F16: ranking replay protocol", () => {
 
     const expectedIds = new Set(snapshot.cards.map(({ id }) => id));
     for (const mode of result.modes) {
-      expect(
-        mode.rankedCardIds.every((cardId) => expectedIds.has(cardId)),
-      ).toBe(true);
+      for (const sample of ["inSample", "heldOut"] as const) {
+        expect(
+          mode[sample].rankedCardIds.every((cardId) =>
+            expectedIds.has(cardId),
+          ),
+        ).toBe(true);
+      }
     }
   });
 
@@ -141,10 +207,10 @@ describe("F16: ranking replay protocol", () => {
       sessionById("economy"),
       SEEDS,
     );
-    const random = metric(result, "random");
+    const random = metric(result, "random", "inSample");
 
-    expect(metric(result, "bayesian")).toBeLessThan(random);
-    expect(metric(result, "rules")).toBeLessThan(random);
+    expect(metric(result, "bayesian", "inSample")).toBeLessThan(random);
+    expect(metric(result, "rules", "inSample")).toBeLessThan(random);
   });
 });
 
@@ -157,10 +223,19 @@ function sessionById(id: string): ReplaySession {
 function metric(
   result: ReturnType<typeof runReplaySession>,
   mode: (typeof REPLAY_MODES)[number],
+  sample: "inSample" | "heldOut",
 ): number {
+  return evaluation(result, mode, sample).averageLikedPosition;
+}
+
+function evaluation(
+  result: ReturnType<typeof runReplaySession>,
+  mode: (typeof REPLAY_MODES)[number],
+  sample: "inSample" | "heldOut",
+) {
   const found = result.modes.find((candidate) => candidate.mode === mode);
   if (!found) throw new Error(`Missing replay mode: ${mode}`);
-  return found.averageLikedPosition;
+  return found[sample];
 }
 
 function card(id: string): RankableCard {

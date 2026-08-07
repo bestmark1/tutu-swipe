@@ -18,6 +18,8 @@ export const REPLAY_MODES = [
   "random",
 ] as const;
 
+export const REPLAY_TRAINING_RATIO = 0.7;
+
 export type ReplayMode = (typeof REPLAY_MODES)[number];
 
 export interface ReplayCard extends RankableCard {
@@ -49,13 +51,18 @@ export interface LikedPositionMetric {
   positions: number[];
 }
 
+export interface ReplayEvaluationResult {
+  averageLikedPosition: number;
+  likedPositions: number[];
+  rankedCardIds: string[];
+}
+
 export interface ReplayModeResult {
   mode: ReplayMode;
   snapshotId: string;
   poolSize: number;
-  averageLikedPosition: number;
-  likedPositions: number[];
-  rankedCardIds: string[];
+  inSample: ReplayEvaluationResult;
+  heldOut: ReplayEvaluationResult;
 }
 
 export interface ReplaySessionResult {
@@ -64,7 +71,16 @@ export interface ReplaySessionResult {
   description: string;
   reactionCount: number;
   likedCardCount: number;
+  trainingReactionCount: number;
+  heldOutReactionCount: number;
+  trainingLikedCardCount: number;
+  heldOutLikedCardCount: number;
   modes: ReplayModeResult[];
+}
+
+export interface ReplayReactionSplit {
+  training: SessionReaction[];
+  heldOut: SessionReaction[];
 }
 
 export function replayReactions(
@@ -151,34 +167,28 @@ export function runReplaySession(
   validateSeed(seeds.bayesian, "Bayesian replay seed");
   validateSeed(seeds.random, "random replay seed");
   assertReactionsBelongToSnapshot(snapshot, session);
+  const split = splitReplayReactions(session.reactions);
 
-  const rankings: Record<ReplayMode, ReplayCard[]> = {
-    bayesian: replayReactions(
-      createBayesianRanker({ seed: seeds.bayesian }),
-      session.reactions,
-      snapshot.cards,
-      session.context,
-    ).rank(snapshot.cards, session.context) as ReplayCard[],
-    rules: replayReactions(
-      createRuleRanker(),
-      session.reactions,
-      snapshot.cards,
-      session.context,
-    ).rank(snapshot.cards, session.context) as ReplayCard[],
-    price: rankByPrice(snapshot.cards),
-    random: seededShuffle(snapshot.cards, seeds.random),
-  };
+  const inSampleRankings = createReplayRankings(
+    snapshot,
+    session,
+    session.reactions,
+    seeds,
+  );
+  const heldOutRankings = createReplayRankings(
+    snapshot,
+    session,
+    split.training,
+    seeds,
+  );
 
   const modes = REPLAY_MODES.map((mode) => {
-    const ranking = rankings[mode];
-    const metric = averageLikedPosition(ranking, session.reactions);
     return {
       mode,
       snapshotId: snapshot.id,
       poolSize: snapshot.cards.length,
-      averageLikedPosition: metric.average,
-      likedPositions: metric.positions,
-      rankedCardIds: ranking.map(rankableCardId),
+      inSample: evaluateRanking(inSampleRankings[mode], session.reactions),
+      heldOut: evaluateRanking(heldOutRankings[mode], split.heldOut),
     };
   });
 
@@ -187,12 +197,29 @@ export function runReplaySession(
     profile: session.profile,
     description: session.description,
     reactionCount: session.reactions.length,
-    likedCardCount: new Set(
-      session.reactions
-        .filter(({ type }) => type === "like")
-        .map(({ cardId }) => cardId),
-    ).size,
+    likedCardCount: uniqueLikedCardCount(session.reactions),
+    trainingReactionCount: split.training.length,
+    heldOutReactionCount: split.heldOut.length,
+    trainingLikedCardCount: uniqueLikedCardCount(split.training),
+    heldOutLikedCardCount: uniqueLikedCardCount(split.heldOut),
     modes,
+  };
+}
+
+export function splitReplayReactions(
+  reactions: readonly SessionReaction[],
+): ReplayReactionSplit {
+  const trainingCount = Math.floor(
+    reactions.length * REPLAY_TRAINING_RATIO,
+  );
+  if (trainingCount === 0 || trainingCount === reactions.length) {
+    throw new TypeError(
+      "Replay session must contain reactions in both training and held-out parts",
+    );
+  }
+  return {
+    training: reactions.slice(0, trainingCount),
+    heldOut: reactions.slice(trainingCount),
   };
 }
 
@@ -322,6 +349,52 @@ function rankByPrice(cards: readonly ReplayCard[]): ReplayCard[] {
         first.index - second.index,
     )
     .map(({ card }) => card);
+}
+
+function createReplayRankings(
+  snapshot: ReplaySnapshot,
+  session: ReplaySession,
+  trainingReactions: readonly SessionReaction[],
+  seeds: ReplaySeeds,
+): Record<ReplayMode, ReplayCard[]> {
+  return {
+    bayesian: replayReactions(
+      createBayesianRanker({ seed: seeds.bayesian }),
+      trainingReactions,
+      snapshot.cards,
+      session.context,
+    ).rank(snapshot.cards, session.context) as ReplayCard[],
+    rules: replayReactions(
+      createRuleRanker(),
+      trainingReactions,
+      snapshot.cards,
+      session.context,
+    ).rank(snapshot.cards, session.context) as ReplayCard[],
+    price: rankByPrice(snapshot.cards),
+    random: seededShuffle(snapshot.cards, seeds.random),
+  };
+}
+
+function evaluateRanking(
+  ranking: readonly ReplayCard[],
+  reactions: readonly SessionReaction[],
+): ReplayEvaluationResult {
+  const metric = averageLikedPosition(ranking, reactions);
+  return {
+    averageLikedPosition: metric.average,
+    likedPositions: metric.positions,
+    rankedCardIds: ranking.map(rankableCardId),
+  };
+}
+
+function uniqueLikedCardCount(
+  reactions: readonly SessionReaction[],
+): number {
+  return new Set(
+    reactions
+      .filter(({ type }) => type === "like")
+      .map(({ cardId }) => cardId),
+  ).size;
 }
 
 function seededShuffle(

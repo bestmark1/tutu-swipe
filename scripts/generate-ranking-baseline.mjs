@@ -54,21 +54,56 @@ function readJson(filePath) {
 function renderReport({ snapshot, snapshotDocument, results }) {
   const modeIds = Object.keys(MODE_LABELS);
   const averages = Object.fromEntries(
-    modeIds.map((mode) => [
-      mode,
-      mean(results.map((result) => metric(result, mode))),
+    ["inSample", "heldOut"].map((sample) => [
+      sample,
+      Object.fromEntries(
+        modeIds.map((mode) => [
+          mode,
+          mean(results.map((result) => metric(result, mode, sample))),
+        ]),
+      ),
     ]),
   );
-  const bayesianVsRandom = improvement(
-    averages.bayesian,
-    averages.random,
+  const inSampleBayesianVsRandom = improvement(
+    averages.inSample.bayesian,
+    averages.inSample.random,
   );
-  const rulesVsRandom = improvement(averages.rules, averages.random);
-  const bayesianVsPrice = improvement(averages.bayesian, averages.price);
-  const rulesVsPrice = improvement(averages.rules, averages.price);
-  const learnedWinner =
-    averages.bayesian <= averages.rules ? "bayesian" : "rules";
-  const winningGap = Math.abs(averages.bayesian - averages.rules);
+  const inSampleRulesVsRandom = improvement(
+    averages.inSample.rules,
+    averages.inSample.random,
+  );
+  const heldOutBayesianVsRandom = improvement(
+    averages.heldOut.bayesian,
+    averages.heldOut.random,
+  );
+  const heldOutRulesVsRandom = improvement(
+    averages.heldOut.rules,
+    averages.heldOut.random,
+  );
+  const heldOutBayesianVsPrice = improvement(
+    averages.heldOut.bayesian,
+    averages.heldOut.price,
+  );
+  const heldOutRulesVsPrice = improvement(
+    averages.heldOut.rules,
+    averages.heldOut.price,
+  );
+  const heldOutBayesianVsRules = improvement(
+    averages.heldOut.bayesian,
+    averages.heldOut.rules,
+  );
+  const trainingReactionCount = sum(
+    results.map(({ trainingReactionCount }) => trainingReactionCount),
+  );
+  const heldOutReactionCount = sum(
+    results.map(({ heldOutReactionCount }) => heldOutReactionCount),
+  );
+  const trainingLikedCardCount = sum(
+    results.map(({ trainingLikedCardCount }) => trainingLikedCardCount),
+  );
+  const heldOutLikedCardCount = sum(
+    results.map(({ heldOutLikedCardCount }) => heldOutLikedCardCount),
+  );
   const runDate = new Intl.DateTimeFormat("sv-SE", {
     timeZone: "Europe/Moscow",
   }).format(new Date());
@@ -86,33 +121,31 @@ function renderReport({ snapshot, snapshotDocument, results }) {
     "",
     "## Методика",
     "",
-    "Каждая записанная сессия целиком воспроизводится на одном и том же checked-in snapshot. После реакций четыре режима ранжируют исходный пул: Bayesian, взвешенные правила, цена по возрастанию и seeded random.",
+    "Каждая записанная сессия воспроизводится на одном и том же checked-in snapshot. Реакции не перемешиваются: первые 70% по порядку журнала составляют обучающую часть, последние 30% — held-out часть. При 20 реакциях на профиль это первые 14 и следующие 6 реакций соответственно.",
     "",
-    "Метрика — средняя one-based позиция уникальных карточек с лайком. Чем меньше значение, тем выше понравившиеся карточки в выдаче. В каждой сессии 20 согласованных реакций, включая 10 лайков.",
+    "Для held-out оценки Bayesian и взвешенные правила обучаются только на первых 14 реакциях, затем все четыре режима ранжируют исходный пул из 227 карточек. Метрика считается только по уникальным карточкам, лайкнутым в последних 6 реакциях. Статические режимы — цена по возрастанию и seeded random — не обучаются, но оцениваются на том же held-out наборе.",
     "",
-    "Это воспроизводимая in-sample baseline-проверка способности модели усвоить согласованный сигнал, а не оценка CTR или обобщения на новых пользователей.",
+    "In-sample цифра сохранена отдельно в прежнем виде: обучаемый режим видит все 20 реакций, после чего измеряется позиция всех 10 лайкнутых карточек. Она показывает, что механизм технически усваивает сигнал, но не доказывает способность предсказывать следующую реакцию. Held-out цифра моделирует прогноз будущего по прошлым реакциям и является основной для вывода.",
     "",
-    "## Результаты",
+    `Всего записано ${counted(trainingReactionCount + heldOutReactionCount, "реакция", "реакции", "реакций")} в ${counted(results.length, "синтетической сессии", "синтетических сессиях", "синтетических сессиях")}. Обучающая часть содержит ${counted(trainingReactionCount, "реакцию", "реакции", "реакций")} (${counted(trainingLikedCardCount, "лайк", "лайка", "лайков")}), held-out часть — ${counted(heldOutReactionCount, "реакцию", "реакции", "реакций")} (${counted(heldOutLikedCardCount, "лайк", "лайка", "лайков")}). Основная метрика опирается всего на ${counted(heldOutLikedCardCount, "held-out лайк", "held-out лайка", "held-out лайков")}, по ${heldOutLikedCardCount / results.length} на профиль, поэтому разброс велик и вывод нельзя считать устойчивой оценкой для реальных пользователей.`,
     "",
-    `| Профиль | ${modeIds.map((mode) => MODE_LABELS[mode]).join(" | ")} |`,
-    `|---|${modeIds.map(() => "---:").join("|")}|`,
-    ...results.map(
-      (result) =>
-        `| ${result.profile} | ${modeIds
-          .map((mode) => format(metric(result, mode)))
-          .join(" | ")} |`,
-    ),
-    `| **Среднее по профилям** | ${modeIds
-      .map((mode) => `**${format(averages[mode])}**`)
-      .join(" | ")} |`,
+    "## Результаты: in-sample",
+    "",
+    ...resultTable(results, modeIds, "inSample", averages.inSample),
+    "",
+    "## Результаты: held-out",
+    "",
+    ...resultTable(results, modeIds, "heldOut", averages.heldOut),
     "",
     "## Вывод и точка отсечения",
     "",
-    `Обучение работает на зафиксированном протоколе: Bayesian улучшает среднюю позицию относительно seeded random на ${formatPercent(bayesianVsRandom)}, взвешенные правила — на ${formatPercent(rulesVsRandom)}. Относительно статической цены улучшение составляет ${formatPercent(bayesianVsPrice)} и ${formatPercent(rulesVsPrice)} соответственно.`,
+    `In-sample подтверждает только техническое усвоение сигнала: Bayesian улучшает среднюю позицию относительно seeded random на ${formatPercent(inSampleBayesianVsRandom)}, взвешенные правила — на ${formatPercent(inSampleRulesVsRandom)}. Эти проценты нельзя использовать как доказательство прогностической способности, потому что оценочные реакции участвовали в обучении.`,
     "",
-    `${MODE_LABELS[learnedWinner]} показывает лучший агрегированный результат среди обучаемых режимов (${format(averages[learnedWinner])}); разница между двумя обучаемыми режимами — ${format(winningGap)} позиции. Статическая цена ожидаемо выигрывает только на экономном профиле, потому что его целевой признак совпадает с baseline-сортировкой.`,
+    `На held-out части Bayesian даёт среднюю позицию ${format(averages.heldOut.bayesian)} против ${format(averages.heldOut.rules)} у взвешенных правил, ${format(averages.heldOut.price)} у цены и ${format(averages.heldOut.random)} у seeded random. Улучшение Bayesian составляет ${formatPercent(heldOutBayesianVsRandom)} относительно random, ${formatPercent(heldOutBayesianVsPrice)} относительно цены и ${formatPercent(heldOutBayesianVsRules)} относительно правил. Взвешенные правила улучшают random на ${formatPercent(heldOutRulesVsRandom)}, а цену — на ${formatPercent(heldOutRulesVsPrice)}.`,
     "",
-    "Решение по точке отсечения: измеримый эффект есть, поэтому отказ от обучения не требуется. Разницу между Bayesian и правилами нельзя считать устойчивой по трём синтетическим профилям; общий интерфейс и rules fallback следует сохранить.",
+    "Held-out результат не опровергает обучение: Bayesian лучше seeded random на каждом из трёх профилей, лучше цены на двух профилях из трёх и лучше обеих статических линий в среднем. Взвешенные правила при этом выигрывают у Bayesian на экономном и торопливом профилях; преимущество Bayesian в среднем создаёт профиль комфорта. Это положительный сигнал обобщения, но не доказательство превосходства Bayesian над правилами.",
+    "",
+    "Решение по точке отсечения: автоматическое переключение на rules fallback по этому прогону не требуется. Однако решение предварительное: выборка из 9 held-out лайков слишком мала для устойчивого вывода о величине эффекта, поэтому общий интерфейс и готовый rules fallback нужно сохранить.",
     "",
     "## Воспроизведение",
     "",
@@ -125,14 +158,48 @@ function renderReport({ snapshot, snapshotDocument, results }) {
   return lines.join("\n");
 }
 
-function metric(result, mode) {
+function resultTable(results, modeIds, sample, averages) {
+  return [
+    `| Профиль | ${modeIds.map((mode) => MODE_LABELS[mode]).join(" | ")} |`,
+    `|---|${modeIds.map(() => "---:").join("|")}|`,
+    ...results.map(
+      (result) =>
+        `| ${result.profile} | ${modeIds
+          .map((mode) => format(metric(result, mode, sample)))
+          .join(" | ")} |`,
+    ),
+    `| **Среднее по профилям** | ${modeIds
+      .map((mode) => `**${format(averages[mode])}**`)
+      .join(" | ")} |`,
+  ];
+}
+
+function metric(result, mode, sample) {
   const found = result.modes.find((candidate) => candidate.mode === mode);
   if (!found) throw new Error(`Missing replay mode: ${mode}`);
-  return found.averageLikedPosition;
+  return found[sample].averageLikedPosition;
 }
 
 function mean(values) {
-  return values.reduce((total, value) => total + value, 0) / values.length;
+  return sum(values) / values.length;
+}
+
+function sum(values) {
+  return values.reduce((total, value) => total + value, 0);
+}
+
+function counted(value, singular, few, many) {
+  const lastTwo = value % 100;
+  const last = value % 10;
+  const noun =
+    lastTwo >= 11 && lastTwo <= 14
+      ? many
+      : last === 1
+        ? singular
+        : last >= 2 && last <= 4
+          ? few
+          : many;
+  return `${value} ${noun}`;
 }
 
 function improvement(value, baseline) {
