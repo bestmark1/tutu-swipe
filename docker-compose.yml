@@ -1,0 +1,29 @@
+name: ${PROJECT_NAME}
+
+services:
+  app:
+    image: ${APP_IMAGE}
+    mem_limit: ${APP_MEMORY_LIMIT:-320m}
+    restart: unless-stopped
+    init: true
+    environment:
+      HOSTNAME: 0.0.0.0
+      NODE_ENV: production
+      PORT: ${APP_PORT}
+      SESSION_STATE_SECRET: ${SESSION_STATE_SECRET}
+    expose:
+      - "${APP_PORT}"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - >-
+          fetch('http://127.0.0.1:' + process.env.PORT + '/health',
+          { signal: AbortSignal.timeout(3000) })
+          .then(response => { if (!response.ok) process.exit(1) })
+          .catch(() => process.exit(1))
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

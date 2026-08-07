@@ -1,0 +1,18 @@
+services:
+  app:
+    networks:
+      - web_gateway
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=web_gateway"
+      - "traefik.http.routers.${PROJECT_NAME}.rule=Host(`${APP_DOMAIN}`)"
+      - "traefik.http.routers.${PROJECT_NAME}.entrypoints=web,websecure"
+      - "traefik.http.routers.${PROJECT_NAME}.tls=true"
+      - "traefik.http.routers.${PROJECT_NAME}.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.${PROJECT_NAME}.middlewares=security-headers@file"
+      - "traefik.http.services.${PROJECT_NAME}.loadbalancer.server.port=${APP_PORT}"
+
+networks:
+  web_gateway:
+    external: true
+    name: web_gateway
