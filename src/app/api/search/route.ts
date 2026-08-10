@@ -1,7 +1,9 @@
 import { searchOnce, type SearchOnceResult } from "@/lib/usecases/search-once";
 import {
   prepareSearchStream,
+  SEARCH_STREAM_QUERY_EVENT_ID,
   streamEventId,
+  type SearchStreamQueryEvent,
 } from "@/lib/usecases/search-stream";
 
 export const maxDuration = 60;
@@ -65,12 +67,30 @@ async function streamSearch(
     return Response.json(prepared, { status: 422 });
   }
 
+  const queryEvent =
+    prepared.assumedFields.length > 0
+      ? ({
+          type: "query",
+          eventId: SEARCH_STREAM_QUERY_EVENT_ID,
+          query: prepared.query,
+          assumedFields: prepared.assumedFields,
+        } satisfies SearchStreamQueryEvent)
+      : undefined;
+  let querySent =
+    queryEvent === undefined ||
+    receivedEventIds.has(SEARCH_STREAM_QUERY_EVENT_ID);
+
   const iterator = prepared.events[Symbol.asyncIterator]();
   const encoder = new TextEncoder();
   let closed = false;
   const body = new ReadableStream<Uint8Array>({
     async pull(controller) {
       if (closed) return;
+      if (!querySent && queryEvent) {
+        querySent = true;
+        controller.enqueue(encoder.encode(`${JSON.stringify(queryEvent)}\n`));
+        return;
+      }
       try {
         let next = await iterator.next();
         while (!next.done && receivedEventIds.has(streamEventId(next.value))) {

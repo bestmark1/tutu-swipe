@@ -49,7 +49,10 @@ export function selectDestinations(
   );
   const scored = destinationCatalog
     .map((destination, catalogIndex): ScoredDestination => {
+      // Бюджет может отсутствовать: человек не назвал сумму, и потолка нет.
+      // Тогда ни одно направление не считается слишком дорогим.
       const aboveBudget =
+        query.budget !== undefined &&
         PRICE_CLASS_LIMITS[destination.priceClass] > query.budget.amount;
       return {
         destination,

@@ -9,6 +9,14 @@ import {
   useState,
 } from "react";
 
+import {
+  assumedFieldChips,
+  type AssumedFieldChip,
+} from "@/lib/discovery/assumed";
+import type {
+  DiscoveryQuery,
+  DiscoveryRequiredField,
+} from "@/lib/discovery/schema";
 import type {
   SessionReaction,
   SignedSessionState,
@@ -26,6 +34,14 @@ const DEFAULT_QUERY =
 const DEFAULT_STORAGE_KEY = "tutu-swipe-feed";
 const DEFAULT_RECONNECT_DELAY_MS = 750;
 const SWIPE_DISTANCE_PX = 72;
+
+const ASSUMED_FIELD_NAMES: readonly DiscoveryRequiredField[] = [
+  "origin",
+  "travellers",
+  "dateWindow",
+  "budget",
+  "vibeTags",
+];
 
 type CardEvent = Extract<SearchStreamEvent, { type: "card" }>;
 type TerminalEvent = Extract<
@@ -48,6 +64,10 @@ interface FeedState {
   receivedEventIds: string[];
   failedDestinations: string[];
   terminal?: TerminalEvent["type"];
+  /** Поля, которых не было во фразе: показываются чипами «подставлено». */
+  assumedFields?: DiscoveryRequiredField[];
+  /** Разобранный запрос: из него берутся подставленные значения для чипов. */
+  parsedQuery?: DiscoveryQuery;
   abortedReason?: Extract<TerminalEvent, { type: "aborted" }>["reason"];
 }
 
@@ -274,15 +294,31 @@ export function SwipeFeed({
     if (distance <= -SWIPE_DISTANCE_PX) void reactToCard("dislike");
   }
 
+  function startNewSearch() {
+    setInput(feed.query);
+    commit({
+      query: "",
+      cards: [],
+      position: 0,
+      session: initialSession,
+      receivedEventIds: [],
+      failedDestinations: [],
+    });
+  }
+
   const current = feed.cards[feed.position];
   const reactionCount = feed.session?.state.reactions.length ?? 0;
   const showSearchForm = !feed.query;
+  const assumedChips =
+    feed.parsedQuery && feed.assumedFields
+      ? assumedFieldChips(feed.parsedQuery, feed.assumedFields)
+      : [];
 
   return (
-    <main className="min-h-screen bg-[#f4f2ed] px-4 py-8 text-zinc-950 sm:px-8 sm:py-12">
+    <main className="min-h-screen bg-canvas px-4 py-8 text-ink sm:px-8 sm:py-12">
       <div className="mx-auto max-w-xl">
         <header>
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-700">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-muted">
             tutu-swipe
           </p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
@@ -294,11 +330,12 @@ export function SwipeFeed({
           <SearchForm input={input} onInput={setInput} onSubmit={submit} />
         ) : (
           <section className="mt-6" aria-label="Состояние ленты">
-            <div className="flex items-center justify-between gap-4 text-sm text-zinc-600">
+            <div className="flex items-center justify-between gap-4 text-sm text-ink-muted">
               <p>{feedCountLabel(feed.cards.length)}</p>
               <p>{reactionCountLabel(reactionCount)}</p>
             </div>
 
+            <AssumedChips chips={assumedChips} onEdit={startNewSearch} />
             <ConnectionMessage connection={connection} hasCards={feed.cards.length > 0} />
             <PartialFailure destinations={feed.failedDestinations} />
 
@@ -326,24 +363,14 @@ export function SwipeFeed({
                 type="button"
                 onClick={() => void undo()}
                 disabled={reactionPending || reactionCount === 0}
-                className="rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-md border border-divider bg-surface px-4 py-3 text-sm font-medium text-ink transition hover:bg-accent-soft disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Отменить реакцию
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setInput(feed.query);
-                  commit({
-                    query: "",
-                    cards: [],
-                    position: 0,
-                    session: initialSession,
-                    receivedEventIds: [],
-                    failedDestinations: [],
-                  });
-                }}
-                className="px-2 py-3 text-sm font-medium text-zinc-600"
+                onClick={startNewSearch}
+                className="px-2 py-3 text-sm font-medium text-ink-muted transition hover:text-ink"
               >
                 Новый поиск
               </button>
@@ -375,12 +402,12 @@ function SearchForm({
         onChange={(event) => onInput(event.target.value)}
         placeholder={DEFAULT_QUERY}
         rows={4}
-        className="w-full resize-none rounded-2xl border border-zinc-300 bg-white px-4 py-3 outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/10"
+        className="w-full resize-none rounded-md border border-divider bg-surface px-4 py-3 text-ink outline-none transition placeholder:text-ink-faint focus:border-accent"
       />
       <button
         type="submit"
         disabled={!input.trim()}
-        className="w-full rounded-2xl bg-zinc-950 px-5 py-4 font-medium text-white disabled:cursor-not-allowed disabled:opacity-40"
+        className="w-full rounded-md bg-action px-5 py-4 text-base font-semibold text-ink transition hover:bg-action-strong disabled:cursor-not-allowed disabled:opacity-45"
       >
         Подобрать поездки
       </button>
@@ -408,58 +435,60 @@ function TripCard({
 
   return (
     <article
-      className="mt-5 touch-pan-y select-none rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm"
+      className="mt-5 touch-pan-y select-none rounded-lg bg-surface p-5 shadow-lift sm:p-6"
       onPointerDown={onPointerDown}
       onPointerUp={onPointerUp}
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-emerald-700">
+          <p className="text-sm font-medium text-accent">
             {formatStay(card.stay)}
           </p>
           <h2 className="mt-1 text-3xl font-semibold">{card.destination}</h2>
         </div>
         {item.updated ? (
-          <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-800">
+          <span className="rounded-full bg-accent-soft px-3 py-1 text-xs font-medium text-ink">
             Данные обновлены
           </span>
         ) : null}
       </div>
 
       {item.isNewDestination ? (
-        <p className="mt-3 text-sm text-sky-700">Найдено новое направление</p>
+        <p className="mt-3 text-sm font-medium text-accent">
+          Найдено новое направление
+        </p>
       ) : null}
 
-      <section className="mt-5 border-t border-zinc-200 pt-5" aria-label="Дорога">
+      <section className="mt-5 border-t border-divider pt-5" aria-label="Дорога">
         <h3 className="font-semibold">Дорога</h3>
-        <p className="mt-1 text-sm text-zinc-600">
+        <p className="mt-1 text-sm text-ink-muted">
           {transportLabel(card.transport.transport)} · {durationLabel(card.transport.durationMinutes)}
         </p>
-        <p className="mt-1 text-sm text-zinc-600">
+        <p className="mt-1 text-sm text-ink-muted">
           {formatDateTime(card.transport.departureAt)} — {formatDateTime(card.transport.arrivalAt)}
         </p>
         {card.transport.carriers.length > 0 ? (
-          <p className="mt-1 text-sm text-zinc-500">{card.transport.carriers.join(", ")}</p>
+          <p className="mt-1 text-sm text-ink-muted">{card.transport.carriers.join(", ")}</p>
         ) : null}
       </section>
 
-      <section className="mt-5 border-t border-zinc-200 pt-5" aria-label="Жильё">
+      <section className="mt-5 border-t border-divider pt-5" aria-label="Жильё">
         <h3 className="font-semibold">Жильё</h3>
         <p className="mt-1">{card.hotel.name}</p>
-        <p className="mt-1 text-sm text-zinc-500">
+        <p className="mt-1 text-sm text-ink-muted">
           {card.hotel.address ?? "Адрес уточняется"}
         </p>
       </section>
 
       {card.warnings.length > 0 ? (
-        <ul className="mt-5 space-y-2 rounded-2xl bg-amber-50 p-4 text-sm text-amber-950">
+        <ul className="mt-5 space-y-2 rounded-md border border-warn/30 bg-warn-soft p-4 text-sm text-ink">
           {card.warnings.map((warning) => (
             <li key={warning.code}>{warning.message}</li>
           ))}
         </ul>
       ) : null}
 
-      <dl className="mt-5 space-y-2 border-t border-zinc-200 pt-5 text-sm">
+      <dl className="mt-5 space-y-2 border-t border-divider pt-5 text-sm">
         <PriceRow component={card.price.breakdown.transport} />
         <PriceRow component={card.price.breakdown.accommodation} />
         <div className="flex items-baseline justify-between gap-3 pt-2 font-semibold">
@@ -470,7 +499,7 @@ function TripCard({
         </div>
       </dl>
 
-      <p className="mt-4 text-xs leading-5 text-zinc-500">
+      <p className="mt-4 text-xs leading-5 text-ink-muted">
         {snapshot ? priceAgeLabel(snapshot.priceAgeMs, snapshot.priceIsStale) : "Цена обновлена сейчас"}. Цена могла измениться к моменту перехода на Туту.
       </p>
 
@@ -479,7 +508,7 @@ function TripCard({
           type="button"
           disabled={disabled}
           onClick={onDislike}
-          className="rounded-2xl border border-zinc-300 px-4 py-3 font-medium disabled:opacity-40"
+          className="min-h-14 rounded-md border border-divider bg-surface px-4 text-base font-semibold text-ink transition hover:bg-accent-soft disabled:cursor-not-allowed disabled:opacity-45"
         >
           Не нравится
         </button>
@@ -487,7 +516,7 @@ function TripCard({
           type="button"
           disabled={disabled}
           onClick={onLike}
-          className="rounded-2xl bg-emerald-700 px-4 py-3 font-medium text-white disabled:opacity-40"
+          className="min-h-14 rounded-md bg-action px-4 text-base font-semibold text-ink transition hover:bg-action-strong disabled:cursor-not-allowed disabled:opacity-45"
         >
           Нравится
         </button>
@@ -502,7 +531,7 @@ function PriceRow({
   component: { label: string; amount: number; currency: string };
 }) {
   return (
-    <div className="flex justify-between gap-3 text-zinc-600">
+    <div className="flex justify-between gap-3 text-ink-muted">
       <dt>{component.label}</dt>
       <dd>{formatMoney(component.amount, component.currency)}</dd>
     </div>
@@ -518,20 +547,20 @@ function ConnectionMessage({
 }) {
   if (connection === "reconnecting") {
     return (
-      <p role="status" className="mt-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-950">
+      <p role="status" className="mt-4 rounded-md border border-warn/30 bg-warn-soft p-3 text-sm text-ink">
         Соединение прервалось. Переподключаемся…
       </p>
     );
   }
   if (connection === "failed") {
     return (
-      <p role="alert" className="mt-4 rounded-xl bg-red-50 p-3 text-sm text-red-800">
+      <p role="alert" className="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-800">
         Не удалось начать поиск. Проверьте запрос и попробуйте ещё раз.
       </p>
     );
   }
   if ((connection === "loading" || connection === "streaming") && hasCards) {
-    return <p className="mt-4 text-sm text-zinc-600">Подбираем ещё варианты…</p>;
+    return <p className="mt-4 text-sm text-ink-muted">Подбираем ещё варианты…</p>;
   }
   return null;
 }
@@ -539,7 +568,7 @@ function ConnectionMessage({
 function PartialFailure({ destinations }: { destinations: string[] }) {
   if (destinations.length === 0) return null;
   return (
-    <p className="mt-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-950">
+    <p className="mt-4 rounded-md border border-warn/30 bg-warn-soft p-3 text-sm text-ink">
       Часть направлений не ответила: {destinations.join(", ")}.
     </p>
   );
@@ -592,10 +621,39 @@ function EmptyFeedState({
 
 function StatusPanel({ title, children }: { title: string; children: string }) {
   return (
-    <section className="mt-5 rounded-3xl border border-zinc-200 bg-white p-6" aria-live="polite">
+    <section className="mt-5 rounded-lg bg-surface p-6 shadow-card" aria-live="polite">
       <h2 className="text-xl font-semibold">{title}</h2>
-      <p className="mt-2 text-sm leading-6 text-zinc-600">{children}</p>
+      <p className="mt-2 text-sm leading-6 text-ink-muted">{children}</p>
     </section>
+  );
+}
+
+function AssumedChips({
+  chips,
+  onEdit,
+}: {
+  chips: AssumedFieldChip[];
+  onEdit(): void;
+}) {
+  if (chips.length === 0) return null;
+  return (
+    <div
+      className="mt-4 flex flex-wrap items-center gap-2"
+      aria-label="Подставлено автоматически из запроса"
+    >
+      {chips.map((chip) => (
+        <button
+          key={chip.field}
+          type="button"
+          onClick={onEdit}
+          title="Подставлено автоматически. Нажмите, чтобы уточнить запрос"
+          className="rounded-sm bg-accent-soft px-3 py-1.5 text-sm font-medium text-ink transition hover:bg-accent/15"
+        >
+          {chip.label}
+          <span className="text-ink-muted"> · подставлено</span>
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -680,6 +738,16 @@ function applyStreamEvent(
     return;
   }
 
+  if (event.type === "query") {
+    commit({
+      ...current,
+      receivedEventIds,
+      assumedFields: event.assumedFields,
+      parsedQuery: event.query,
+    });
+    return;
+  }
+
   commit({ ...current, receivedEventIds, terminal: event.type });
 }
 
@@ -688,6 +756,11 @@ function parseStreamEvent(line: string): SearchStreamEvent | undefined {
   try {
     const value: unknown = JSON.parse(line);
     if (!isRecord(value) || typeof value.eventId !== "string") return undefined;
+    if (value.type === "query") {
+      return isQueryEvent(value)
+        ? (value as unknown as SearchStreamEvent)
+        : undefined;
+    }
     if (
       value.type !== "card" &&
       value.type !== "candidate_error" &&
@@ -701,6 +774,20 @@ function parseStreamEvent(line: string): SearchStreamEvent | undefined {
   } catch {
     return undefined;
   }
+}
+
+function isQueryEvent(
+  value: Record<string, unknown>,
+): boolean {
+  return (
+    Array.isArray(value.assumedFields) &&
+    value.assumedFields.every(
+      (field) =>
+        typeof field === "string" &&
+        ASSUMED_FIELD_NAMES.includes(field as DiscoveryRequiredField),
+    ) &&
+    isRecord(value.query)
+  );
 }
 
 function restore(storageKey: string): FeedState | undefined {
@@ -735,6 +822,12 @@ function isStoredFeed(value: unknown): value is StoredFeedState {
   ) {
     return false;
   }
+  if (value.assumedFields !== undefined && !isStoredAssumedFields(value.assumedFields)) {
+    return false;
+  }
+  if (value.parsedQuery !== undefined && !isRecord(value.parsedQuery)) {
+    return false;
+  }
   return value.cards.every(
     (item) =>
       isRecord(item) &&
@@ -746,6 +839,17 @@ function isStoredFeed(value: unknown): value is StoredFeedState {
       isRecord(item.card.price) &&
       isRecord(item.card.transport) &&
       isRecord(item.card.hotel),
+  );
+}
+
+function isStoredAssumedFields(value: unknown): value is DiscoveryRequiredField[] {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (field) =>
+        typeof field === "string" &&
+        ASSUMED_FIELD_NAMES.includes(field as DiscoveryRequiredField),
+    )
   );
 }
 

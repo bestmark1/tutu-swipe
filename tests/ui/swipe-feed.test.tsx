@@ -395,4 +395,83 @@ describe("swipe feed", () => {
     ]));
     expect(await screen.findByRole("heading", { name: "Казань" })).toBeVisible();
   });
+
+  it("F23: shows what the parse substituted and lets the query be corrected", async () => {
+    const queryEvent: SearchStreamEvent = {
+      type: "query",
+      eventId: "query",
+      query: {
+        origin: "Москва",
+        travellers: { adults: 1, childrenAges: [] },
+        dateWindow: { startDate: "2026-09-10", nights: 4 },
+        budget: {
+          amount: 80_000,
+          currency: "RUB",
+          scope: "group_trip_total",
+        },
+        vibeTags: ["sea"],
+      },
+      assumedFields: ["travellers", "vibeTags"],
+    };
+    render(
+      <SwipeFeed
+        initialQuery="на море из Москвы"
+        initialSession={session()}
+        fetcher={vi.fn(async () =>
+          responseFor([
+            queryEvent,
+            appendEvent("snapshot-1", "Сочи"),
+            doneEvent(),
+          ]),
+        )}
+        sessionClient={sessionClient()}
+        storageKey="assumed-chips"
+      />,
+    );
+
+    await screen.findByRole("heading", { name: "Сочи" });
+    expect(screen.getByText("1 взрослый")).toBeVisible();
+    expect(screen.getByText("море")).toBeVisible();
+    expect(screen.getAllByText("· подставлено")).toHaveLength(2);
+
+    fireEvent.click(screen.getByRole("button", { name: /1 взрослый/u }));
+    expect(await screen.findByLabelText("Опишите поездку")).toBeVisible();
+  });
+
+  it("F23: no assumed chips when everything came from the phrase", async () => {
+    const queryEvent: SearchStreamEvent = {
+      type: "query",
+      eventId: "query",
+      query: {
+        origin: "Москва",
+        travellers: { adults: 2, childrenAges: [] },
+        dateWindow: { startDate: "2026-09-10", nights: 4 },
+        budget: {
+          amount: 80_000,
+          currency: "RUB",
+          scope: "group_trip_total",
+        },
+        vibeTags: ["sea"],
+      },
+      assumedFields: [],
+    };
+    render(
+      <SwipeFeed
+        initialQuery="полная фраза"
+        initialSession={session()}
+        fetcher={vi.fn(async () =>
+          responseFor([
+            queryEvent,
+            appendEvent("snapshot-1", "Сочи"),
+            doneEvent(),
+          ]),
+        )}
+        sessionClient={sessionClient()}
+        storageKey="no-assumed-chips"
+      />,
+    );
+
+    await screen.findByRole("heading", { name: "Сочи" });
+    expect(screen.queryByText("· подставлено")).not.toBeInTheDocument();
+  });
 });

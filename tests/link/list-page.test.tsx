@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -68,5 +68,65 @@ describe("shared list page", () => {
       expect(open).toHaveBeenCalledWith("#v1.payload.signature"),
     );
     expect(localStorage).toHaveLength(0);
+  });
+
+  it("F23: links each trip to Tutu when the rebuilt card carries a URL", async () => {
+    window.history.replaceState(null, "", "/list#v1.payload.signature");
+    const open = vi.fn<OpenSharedList>(async () => ({
+      status: "ready",
+      trips: [
+        {
+          destination: "Сочи",
+          hotelName: "Отель у моря",
+          totalAmount: 52_000,
+          currency: "RUB",
+          replaced: false,
+          tutuUrl: "https://hotel.tutu.ru/sochi/offer/1",
+        },
+        {
+          destination: "Казань",
+          hotelName: "Отель Казань",
+          totalAmount: 40_000,
+          currency: "RUB",
+          replaced: false,
+        },
+      ],
+    }));
+
+    render(<ListPageClient open={open} />);
+
+    const link = await screen.findByRole("link", { name: "Смотреть на Туту" });
+    expect(link).toHaveAttribute("href", "https://hotel.tutu.ru/sochi/offer/1");
+    expect(screen.getAllByRole("link", { name: "Смотреть на Туту" })).toHaveLength(1);
+  });
+
+  it("F23: shares the current link via the clipboard", async () => {
+    window.history.replaceState(null, "", "/list#v1.payload.signature");
+    const writeText = vi.fn(async () => undefined);
+    Object.defineProperty(window.navigator, "clipboard", {
+      value: { writeText },
+      configurable: true,
+    });
+    const open = vi.fn<OpenSharedList>(async () => ({
+      status: "ready",
+      trips: [
+        {
+          destination: "Сочи",
+          hotelName: "Отель у моря",
+          totalAmount: 52_000,
+          currency: "RUB",
+          replaced: false,
+        },
+      ],
+    }));
+
+    render(<ListPageClient open={open} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Поделиться" }));
+
+    expect(writeText).toHaveBeenCalledWith(window.location.href);
+    expect(
+      await screen.findByText(/Ссылка скопирована/iu),
+    ).toBeVisible();
   });
 });

@@ -88,7 +88,7 @@ function toCompactPayload(payload: ShortlistPayload): CompactPayload {
       payload.query.travellers.childrenAges,
       payload.query.dateWindow.startDate,
       payload.query.dateWindow.nights,
-      payload.query.budget.amount,
+      payload.query.budget?.amount ?? 0,
       payload.query.vibeTags,
     ],
     o: payload.offers.map((offer) => [
@@ -171,7 +171,7 @@ function normalizeQuery(value: DiscoveryQuery): DiscoveryQuery | undefined {
   const childrenAges = value.travellers.childrenAges;
   const startDate = value.dateWindow.startDate;
   const nights = value.dateWindow.nights;
-  const budget = value.budget.amount;
+  const budget = value.budget?.amount ?? 0;
   if (!integerBetween(adults, 1, 20)) return undefined;
   if (
     !Array.isArray(childrenAges) ||

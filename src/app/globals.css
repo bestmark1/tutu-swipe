@@ -1,26 +1,90 @@
 @import "tailwindcss";
 
+/*
+ * Визуальный язык в стиле Туту.
+ *
+ * Палитра снята с живого tutu.ru 2026-08-07, значения точные — это не
+ * приблизительная стилизация «под похожее», а те же цвета, которыми
+ * пользуется сервис. Продукт должен читаться как часть их экосистемы.
+ *
+ * Чего здесь намеренно нет: фирменных шрифтов Direct и Tutu Sans. Они
+ * проприетарные, файлы лицензированы, и тянуть их к себе нельзя. Взят
+ * системный стек с похожим характером — геометричный гротеск.
+ *
+ * Тёмная тема не поддерживается сознательно: у Туту её нет, а изобретать
+ * свою — значит перестать быть похожими ровно там, где похожесть нужна.
+ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Текст */
+  --tutu-ink: #181c2d;
+  --tutu-ink-muted: #555a7a;
+  --tutu-ink-faint: #7d82a0;
+
+  /* Поверхности */
+  --tutu-canvas: #f5f5f9;
+  --tutu-surface: #ffffff;
+
+  /* Действие и акцент */
+  --tutu-action: #48a22b;
+  --tutu-action-strong: #3d8a24;
+  --tutu-accent: #6f5df6;
+  --tutu-accent-soft: #eff0ff;
+
+  /* Служебные */
+  --tutu-divider: rgba(125, 130, 160, 0.15);
+  --tutu-warning: #b8641a;
+  --tutu-warning-soft: #fdf3e7;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-ink: var(--tutu-ink);
+  --color-ink-muted: var(--tutu-ink-muted);
+  --color-ink-faint: var(--tutu-ink-faint);
+  --color-canvas: var(--tutu-canvas);
+  --color-surface: var(--tutu-surface);
+  --color-action: var(--tutu-action);
+  --color-action-strong: var(--tutu-action-strong);
+  --color-accent: var(--tutu-accent);
+  --color-accent-soft: var(--tutu-accent-soft);
+  --color-divider: var(--tutu-divider);
+  --color-warn: var(--tutu-warning);
+  --color-warn-soft: var(--tutu-warning-soft);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Скругления Туту: 12 мелкое, 16 кнопки и поля, 24 карточки */
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+
+  /* Тени: мягкая у карточек покоя, выраженная у активной карточки ленты */
+  --shadow-card: 0 1px 2px rgb(24 28 45 / 0.05), 0 4px 16px rgb(24 28 45 / 0.07);
+  --shadow-lift: 0 2px 4px rgb(24 28 45 / 0.06), 0 12px 32px rgb(24 28 45 / 0.12);
+
+  --font-sans: -apple-system, system-ui, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--tutu-canvas);
+  color: var(--tutu-ink);
+  font-family: -apple-system, system-ui, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Видимый фокус обязателен: лентой пользуются и с клавиатуры. */
+:focus-visible {
+  outline: 2px solid var(--tutu-accent);
+  outline-offset: 2px;
+}
+
+/* Уважение к системной настройке: анимации свайпа не должны укачивать. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

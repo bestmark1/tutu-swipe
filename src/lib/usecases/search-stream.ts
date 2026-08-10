@@ -3,6 +3,7 @@ import { parseTravelQuery } from "../discovery/parse";
 import type {
   DiscoveryParseResult,
   DiscoveryQuery,
+  DiscoveryRequiredField,
 } from "../discovery/schema";
 import { selectDestinations } from "../discovery/select";
 import {
@@ -13,7 +14,22 @@ import {
 
 type ParseFailure = Exclude<DiscoveryParseResult, { status: "success" }>;
 
+export const SEARCH_STREAM_QUERY_EVENT_ID = "query";
+
+/**
+ * Разобранный запрос, который поиск получил из фразы: что взято из неё,
+ * а что подставлено умолчаниями. Интерфейс показывает подставленное,
+ * чтобы человек мог поправить фразу.
+ */
+export interface SearchStreamQueryEvent {
+  type: "query";
+  eventId: string;
+  query: DiscoveryQuery;
+  assumedFields: DiscoveryRequiredField[];
+}
+
 export type SearchStreamEvent =
+  | SearchStreamQueryEvent
   | Extract<FanOutSearchEvent, { type: "card" }>
   | (Exclude<FanOutSearchEvent, { type: "card" }> & { eventId: string });
 
@@ -22,6 +38,7 @@ export type SearchStreamPreparation =
   | {
       status: "ready";
       query: DiscoveryQuery;
+      assumedFields: DiscoveryRequiredField[];
       events: AsyncGenerator<FanOutSearchEvent>;
     };
 
@@ -44,6 +61,7 @@ export async function prepareSearchStream(
   return {
     status: "ready",
     query: parsed.query,
+    assumedFields: parsed.assumedFields,
     events: fanOutSearch({
       ...options.fanOut,
       candidates: selectDestinations(parsed.query),

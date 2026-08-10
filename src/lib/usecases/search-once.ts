@@ -5,6 +5,7 @@ import {
 import type {
   DiscoveryParseResult,
   DiscoveryQuery,
+  DiscoveryRequiredField,
 } from "../discovery/schema";
 import {
   createMcpClient,
@@ -41,6 +42,7 @@ export type SearchOnceResult =
   | {
       status: "success";
       query: DiscoveryQuery;
+      assumedFields: DiscoveryRequiredField[];
       cards: SearchOnceCard[];
     }
   | {
@@ -94,7 +96,12 @@ export async function searchOnce(
   }
 
   if (cards.length > 0) {
-    return { status: "success", query: parsed.query, cards };
+    return {
+      status: "success",
+      query: parsed.query,
+      assumedFields: parsed.assumedFields,
+      cards,
+    };
   }
   if (sourceUnavailable) {
     return {
@@ -155,7 +162,8 @@ async function searchDirection(
 
   const built = buildTripCard(transport, hotel);
   if (built.status !== "built") return { sourceUnavailable };
-  if (built.card.price.total.amount > query.budget.amount) {
+  // Отсекаем по цене только если бюджет назван. Без него потолка нет.
+  if (query.budget && built.card.price.total.amount > query.budget.amount) {
     return { sourceUnavailable };
   }
 

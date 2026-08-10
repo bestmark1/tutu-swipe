@@ -12,6 +12,7 @@ const prepareSearchStreamMock = vi.hoisted(() =>
 
 vi.mock("@/lib/usecases/search-stream", () => ({
   prepareSearchStream: prepareSearchStreamMock,
+  SEARCH_STREAM_QUERY_EVENT_ID: "query",
   streamEventId: (event: FanOutSearchEvent) =>
     event.type === "card" ? event.eventId : event.type,
 }));
@@ -58,6 +59,7 @@ describe("streaming POST /api/search", () => {
     prepareSearchStreamMock.mockResolvedValue({
       status: "ready",
       query: {} as never,
+      assumedFields: [],
       events: events(),
     } satisfies SearchStreamPreparation);
 
@@ -82,6 +84,7 @@ describe("streaming POST /api/search", () => {
     prepareSearchStreamMock.mockResolvedValue({
       status: "ready",
       query: {} as never,
+      assumedFields: [],
       events: events(),
     } satisfies SearchStreamPreparation);
 
@@ -91,5 +94,51 @@ describe("streaming POST /api/search", () => {
     expect(body).not.toContain("snapshot-1");
     expect(body).toContain("snapshot-2");
     expect(body).toContain('"eventId":"done"');
+  });
+
+  it("F23: leads the stream with the parsed query and its assumed fields", async () => {
+    async function* events(): AsyncGenerator<FanOutSearchEvent> {
+      yield cardEvent("snapshot-1");
+      yield { type: "done", pool: [] };
+    }
+    prepareSearchStreamMock.mockResolvedValue({
+      status: "ready",
+      query: { origin: "Москва" } as never,
+      assumedFields: ["travellers", "budget"],
+      events: events(),
+    } satisfies SearchStreamPreparation);
+
+    const response = await POST(request());
+    const [firstLine] = (await response.text()).split("\n");
+    const parsed = JSON.parse(firstLine) as {
+      type: string;
+      eventId: string;
+      assumedFields: string[];
+      query: { origin: string };
+    };
+
+    expect(parsed.type).toBe("query");
+    expect(parsed.eventId).toBe("query");
+    expect(parsed.assumedFields).toEqual(["travellers", "budget"]);
+    expect(parsed.query.origin).toBe("Москва");
+  });
+
+  it("F23: skips the query event once the client acknowledged it", async () => {
+    async function* events(): AsyncGenerator<FanOutSearchEvent> {
+      yield cardEvent("snapshot-1");
+      yield { type: "done", pool: [] };
+    }
+    prepareSearchStreamMock.mockResolvedValue({
+      status: "ready",
+      query: { origin: "Москва" } as never,
+      assumedFields: ["budget"],
+      events: events(),
+    } satisfies SearchStreamPreparation);
+
+    const response = await POST(request(["query"]));
+    const body = await response.text();
+
+    expect(body).not.toContain('"type":"query"');
+    expect(body).toContain("snapshot-1");
   });
 });

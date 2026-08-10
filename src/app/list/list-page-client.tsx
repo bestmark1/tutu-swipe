@@ -15,6 +15,8 @@ export interface ListPageClientProps {
   open?: OpenSharedList;
 }
 
+type ShareState = "idle" | "copied" | "failed";
+
 export function ListPageClient({
   open = openSharedList,
 }: ListPageClientProps) {
@@ -53,43 +55,98 @@ export function ListPageClient({
   }
 
   return (
-    <main className="min-h-screen bg-zinc-950 px-5 py-10 text-zinc-50">
+    <main className="min-h-screen bg-canvas px-4 py-8 text-ink sm:px-8 sm:py-12">
       <div className="mx-auto max-w-2xl">
-        <p className="text-sm font-medium text-emerald-300">tutu-swipe</p>
-        <h1 className="mt-2 text-3xl font-semibold">Подборка поездок</h1>
-        <p className="mt-2 text-zinc-400">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-muted">
+          tutu-swipe
+        </p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight">
+          Подборка поездок
+        </h1>
+        <p className="mt-2 text-ink-muted">
           Цены и наличие обновлены при открытии ссылки.
         </p>
-        <div className="mt-8 grid gap-4">
+
+        <ShareButton />
+
+        <div className="mt-6 grid gap-4">
           {result.trips.map((trip) => (
             <article
-              className="rounded-3xl border border-zinc-800 bg-zinc-900 p-6"
+              className="rounded-lg bg-surface p-5 shadow-card sm:p-6"
               key={`${trip.destination}:${trip.hotelName}`}
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h2 className="text-2xl font-semibold">{trip.destination}</h2>
-                  <p className="mt-1 text-zinc-300">{trip.hotelName}</p>
+                  <p className="mt-1 text-ink-muted">{trip.hotelName}</p>
                 </div>
                 {trip.replaced ? (
-                  <span className="rounded-full bg-amber-300/15 px-3 py-1 text-sm text-amber-200">
+                  <span className="rounded-full border border-warn/30 bg-warn-soft px-3 py-1 text-sm font-medium text-ink">
                     Предложение заменено
                   </span>
                 ) : null}
               </div>
-              <p className="mt-6 text-xl font-semibold">
+              <p className="mt-5 text-xl font-semibold">
                 {formatMoney(trip.totalAmount, trip.currency)}
               </p>
               {trip.replaced ? (
-                <p className="mt-2 text-sm text-zinc-400">
+                <p className="mt-2 text-sm leading-6 text-ink-muted">
                   Исходный вариант исчез, поэтому показан лучший актуальный по тем же параметрам.
                 </p>
+              ) : null}
+              {trip.tutuUrl ? (
+                <a
+                  href={trip.tutuUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-5 block rounded-md bg-action px-4 py-3.5 text-center font-semibold text-ink transition hover:bg-action-strong"
+                >
+                  Смотреть на Туту
+                </a>
               ) : null}
             </article>
           ))}
         </div>
       </div>
     </main>
+  );
+}
+
+function ShareButton() {
+  const [state, setState] = useState<ShareState>("idle");
+
+  useEffect(() => {
+    if (state === "idle") return;
+    const timeout = setTimeout(() => setState("idle"), 3000);
+    return () => clearTimeout(timeout);
+  }, [state]);
+
+  async function share() {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setState("copied");
+    } catch {
+      setState("failed");
+    }
+  }
+
+  return (
+    <div className="mt-6">
+      <button
+        type="button"
+        onClick={() => void share()}
+        className="rounded-md bg-accent px-5 py-3.5 font-semibold text-white transition hover:bg-accent/90"
+      >
+        Поделиться
+      </button>
+      <p role="status" aria-live="polite" className="mt-2 min-h-5 text-sm text-ink-muted">
+        {state === "copied"
+          ? "Ссылка скопирована — отправьте её, с кем выбираете поездку."
+          : state === "failed"
+            ? "Не удалось скопировать: адрес подборки есть в строке браузера."
+            : "Внутри ссылки — сама подборка, без сессии и аккаунта."}
+      </p>
+    </div>
   );
 }
 
@@ -101,10 +158,10 @@ function Message({
   children: React.ReactNode;
 }) {
   return (
-    <main className="grid min-h-screen place-items-center bg-zinc-950 px-5 text-zinc-50">
-      <section className="max-w-lg rounded-3xl border border-zinc-800 bg-zinc-900 p-8">
+    <main className="grid min-h-screen place-items-center bg-canvas px-5 text-ink">
+      <section className="max-w-lg rounded-lg bg-surface p-8 shadow-card">
         <h1 className="text-2xl font-semibold">{title}</h1>
-        <p className="mt-3 text-zinc-300">{children}</p>
+        <p className="mt-3 leading-7 text-ink-muted">{children}</p>
       </section>
     </main>
   );
