@@ -297,7 +297,7 @@ describe("swipe feed", () => {
   });
 
   it.each([
-    ["button", (article: HTMLElement) => fireEvent.click(screen.getByRole("button", { name: "Нравится" }))],
+    ["button", () => fireEvent.click(screen.getByRole("button", { name: "Нравится" }))],
     ["swipe", (article: HTMLElement) => {
       fireEvent.pointerDown(article, { clientX: 20 });
       fireEvent.pointerUp(article, { clientX: 140 });

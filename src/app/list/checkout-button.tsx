@@ -81,7 +81,7 @@ export function CheckoutButton({
       {isMultiPnr && multiPnrNote ? (
         <p
           role="note"
-          className="mb-3 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-950"
+          className="mb-3 rounded-md border border-warn/30 bg-warn-soft px-4 py-3 text-sm text-ink"
         >
           {multiPnrNote}
         </p>
@@ -98,14 +98,14 @@ export function CheckoutButton({
           href={link.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="block rounded-xl bg-emerald-700 px-4 py-3 text-center font-medium text-white transition hover:bg-emerald-800"
+          className="block rounded-md bg-action px-4 py-3.5 text-center font-semibold text-ink transition hover:bg-action-strong"
         >
           {link.label}
         </a>
       ) : (
         <span
           aria-live="polite"
-          className="block rounded-xl bg-zinc-200 px-4 py-3 text-center font-medium text-zinc-600"
+          className="block rounded-md bg-canvas px-4 py-3.5 text-center font-medium text-ink-muted"
         >
           Готовим переход…
         </span>

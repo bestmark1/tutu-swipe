@@ -18,6 +18,8 @@ import path from "node:path";
 const FILE = path.resolve(process.cwd(), "docs/features.json");
 const STATES = ["not_started", "active", "blocked", "passing"];
 const VERIFY_TIMEOUT_MS = 10 * 60 * 1000;
+/** Команды, которые рекурсивно запускают этот же гейт/audit. */
+const RECURSIVE_GATE_PATTERN = /npm run check|features\.mjs audit/u;
 
 function load() {
   return JSON.parse(readFileSync(FILE, "utf8"));
@@ -238,6 +240,16 @@ function audit() {
 
   for (const feature of passing) {
     process.stdout.write(`audit ${feature.id} … `);
+    if (RECURSIVE_GATE_PATTERN.test(feature.verification)) {
+      // WHAT: команда верификации — сам `npm run check` (или этот audit).
+      // Запуск отсюда зацикливается: check завершается audit, audit снова
+      // запускает check, и так без конца.
+      // WHY: уровни гейта — типы, линт, тесты, границы — уже отработали в
+      // текущем запуске ДО audit, поэтому повторный прогон ничего не
+      // добавляет. Пропуск честный: он печатается, а не замалчивается.
+      console.log("пропуск: верификация совпадает с самим гейтом");
+      continue;
+    }
     const result = runVerification(feature);
     console.log(result.ok ? "ok" : "FAIL");
     if (!result.ok) broken.push({ feature, output: result.output });
