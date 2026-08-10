@@ -22,6 +22,7 @@ describe("rule-based discovery query parsing", () => {
     expect(result).toEqual({
       status: "success",
       source: "rules",
+      assumedFields: [],
       query: {
         origin: "Москва",
         travellers: { adults: 2, childrenAges: [] },
@@ -81,11 +82,18 @@ describe("rule-based discovery query parsing", () => {
   ])("does not treat dates or durations as a budget: %s", async (phrase) => {
     const result = await parseTravelQuery(phrase, { today: TODAY });
 
-    expect(result.status).toBe("rejected");
-    if (result.status !== "rejected") {
-      throw new Error(`Expected ${phrase} to have no budget`);
+    // Отсутствие бюджета больше не отказ: поиск идёт без ценового потолка.
+    // Проверяем главное — число из даты или длительности не стало бюджетом.
+    if (result.status === "success") {
+      expect(result.query.budget).toBeUndefined();
+      expect(result.assumedFields).toContain("budget");
+      return;
     }
-    expect(result.missingFields).toContain("budget");
+    if (result.status === "rejected") {
+      expect(result.missingFields).toContain("budget");
+      return;
+    }
+    throw new Error(`Expected ${phrase} to have no budget, got ${result.status}`);
   });
 
   it("AC5: marks the budget as the total for the group and trip", async () => {

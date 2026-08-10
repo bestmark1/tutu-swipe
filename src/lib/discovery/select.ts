@@ -156,7 +156,8 @@ function vibeScore(
     (tag === "sea" ||
       tag === "mountains" ||
       tag === "city" ||
-      tag === "nature") &&
+      tag === "nature" ||
+      tag === "treatment") &&
     locationTypes.includes(tag)
   ) {
     return 60;

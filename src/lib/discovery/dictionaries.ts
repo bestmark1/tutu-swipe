@@ -1,5 +1,38 @@
 import type { VibeTag } from "./schema";
 
+export const TWO_ADULT_PHRASES = [
+  "с женой",
+  "с мужем",
+  "с супругой",
+  "вдвоем с женой",
+  "я и жена",
+  "нас двое",
+  "с девушкой",
+  "с парнем",
+  "семьей",
+  "с семьей",
+] as const;
+
+export const ONE_ADULT_PHRASES = ["один", "сам", "в одиночку"] as const;
+
+export const LOW_BUDGET_PHRASES = ["недорого", "подешевле"] as const;
+export const UNRESTRICTED_BUDGET_PHRASES = [
+  "не важно сколько",
+  "неважно сколько",
+  "любой бюджет",
+] as const;
+
+export const RUSSIAN_BUDGET_TENS: Readonly<Record<string, number>> = {
+  двадцать: 20,
+  тридцать: 30,
+  сорок: 40,
+  пятьдесят: 50,
+  шестьдесят: 60,
+  семьдесят: 70,
+  восемьдесят: 80,
+  девяносто: 90,
+};
+
 export interface CityDictionaryEntry {
   name: string;
   aliases: readonly string[];
@@ -86,15 +119,40 @@ export const VIBE_SYNONYMS: ReadonlyArray<{
 }> = [
   {
     tag: "sea",
-    phrases: ["море", "морю", "пляж", "пляжу", "побережье", "приморье"],
+    phrases: [
+      "море",
+      "морю",
+      "пляж",
+      "пляжу",
+      "побережье",
+      "приморье",
+      "на юг",
+      "к теплому морю",
+      "погреться",
+    ],
   },
   {
     tag: "mountains",
-    phrases: ["горы", "горах", "горам", "горный", "альпинизм"],
+    phrases: [
+      "горы",
+      "горах",
+      "горам",
+      "горный",
+      "альпинизм",
+      "в горы",
+      "покататься на лыжах",
+    ],
   },
   {
     tag: "city",
-    phrases: ["городской отдых", "мегаполис", "музеи", "архитектура"],
+    phrases: [
+      "городской отдых",
+      "мегаполис",
+      "музеи",
+      "архитектура",
+      "по городам",
+      "посмотреть города",
+    ],
   },
   {
     tag: "quiet",
@@ -105,6 +163,8 @@ export const VIBE_SYNONYMS: ReadonlyArray<{
       "не шумно",
       "уединение",
       "уединения",
+      "отдохнуть от суеты",
+      "подальше от людей",
     ],
   },
   {
@@ -125,5 +185,9 @@ export const VIBE_SYNONYMS: ReadonlyArray<{
   {
     tag: "culture",
     phrases: ["культура", "музей", "музеи", "история", "архитектура"],
+  },
+  {
+    tag: "treatment",
+    phrases: ["полечиться", "на воды"],
   },
 ];

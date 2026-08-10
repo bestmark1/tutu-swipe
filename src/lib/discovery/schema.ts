@@ -6,6 +6,7 @@ export const VIBE_TAGS = [
   "active",
   "nature",
   "culture",
+  "treatment",
 ] as const;
 
 export type VibeTag = (typeof VIBE_TAGS)[number];
@@ -32,10 +33,17 @@ export interface DiscoveryQuery {
   dateWindow: DateWindow;
   budget: TripBudget;
   vibeTags: VibeTag[];
+  /** Явный ценовой ориентир без выдуманного денежного потолка. */
+  budgetPreference?: "low" | "unrestricted";
 }
 
 export type PartialDiscoveryQuery = Partial<DiscoveryQuery>;
-export type DiscoveryRequiredField = keyof DiscoveryQuery;
+export type DiscoveryRequiredField =
+  | "origin"
+  | "travellers"
+  | "dateWindow"
+  | "budget"
+  | "vibeTags";
 
 // F04 turns these markers into clarification steps. F03 only reserves the
 // contract and never guesses either value.
@@ -65,6 +73,12 @@ export type DiscoveryParseResult =
       status: "success";
       source: "rules" | "rules+fallback";
       query: DiscoveryQuery;
+      /**
+       * Поля, которых не было во фразе и которые заполнены умолчаниями.
+       * Интерфейс показывает их отдельно, чтобы человек видел, что подставлено,
+       * и мог поправить. Пустой массив означает, что всё пришло из запроса.
+       */
+      assumedFields: DiscoveryRequiredField[];
     }
   | {
       status: "needs_clarification";
@@ -82,8 +96,13 @@ export type DiscoveryParseResult =
       blockingFields: DiscoveryBlockingField[];
     };
 
+/**
+ * Совместимое имя прежней заглушки. Импорт ленивый, чтобы schema оставалась
+ * безопасной для type-only потребителей и не создавала статический цикл.
+ */
 export const unavailableDiscoveryFallback: DiscoveryFallbackParser = {
-  async parse() {
-    return null;
+  async parse(request) {
+    const { discoveryFallbackModel } = await import("./fallback-model");
+    return discoveryFallbackModel.parse(request);
   },
 };

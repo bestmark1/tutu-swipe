@@ -1,6 +1,15 @@
-import { MONTHS, ORIGIN_CITIES, VIBE_SYNONYMS } from "./dictionaries";
 import {
-  unavailableDiscoveryFallback,
+  LOW_BUDGET_PHRASES,
+  MONTHS,
+  ONE_ADULT_PHRASES,
+  ORIGIN_CITIES,
+  RUSSIAN_BUDGET_TENS,
+  TWO_ADULT_PHRASES,
+  UNRESTRICTED_BUDGET_PHRASES,
+  VIBE_SYNONYMS,
+} from "./dictionaries";
+import { discoveryFallbackModel } from "./fallback-model";
+import {
   type DateWindow,
   type DiscoveryBlockingField,
   type DiscoveryClarification,
@@ -35,16 +44,34 @@ export async function parseTravelQuery(
     dateWindow: parseDateWindow(text, options.today),
     budget: parseBudget(text),
     vibeTags: parseVibeTags(text),
+    budgetPreference: parseBudgetPreference(text),
   };
   removeMissingValues(parsed);
 
   const missingFields = findMissingFields(parsed);
+  const blockingFields = findBlockingFields(parsed, travellerMatch);
+
+  // Период назван, но разобрать его не удалось — например, дата в прошлом.
+  // Это ошибка во фразе, а не отсутствие данных: подставить умолчание
+  // значило бы молча увезти человека не туда, куда он просил.
+  if (!parsed.dateWindow && mentionsUnusablePeriod(text)) {
+    return {
+      status: "rejected",
+      source: "rules",
+      code: "incomplete",
+      message: "Не удалось понять даты поездки.",
+      hint: "Проверьте период: дата должна быть в будущем.",
+      missingFields: ["dateWindow"],
+      blockingFields: [],
+    };
+  }
+
+  // Правила собрали всё — модель не нужна.
   if (missingFields.length === 0) {
     return success(parsed, "rules");
   }
 
-  const blockingFields = findBlockingFields(parsed, travellerMatch);
-  const fallback = options.fallback ?? unavailableDiscoveryFallback;
+  const fallback = options.fallback ?? discoveryFallbackModel;
   const fallbackParsed = await fallback.parse({
     input,
     today: formatDate(
@@ -75,18 +102,28 @@ export async function parseTravelQuery(
     return clarificationRequired(unresolvedBlocking, "rules+fallback");
   }
 
-  return {
-    status: "rejected",
-    source: "rules+fallback",
-    code: recognizedNothing ? "unrecognized" : "incomplete",
-    message: recognizedNothing
-      ? "Не удалось понять запрос о поездке."
-      : "Не удалось собрать все параметры поездки.",
-    hint:
-      "Укажите город отправления, состав путешественников, даты, общий бюджет и желаемый формат отдыха.",
-    missingFields: combinedMissingFields,
-    blockingFields: unresolvedBlocking,
-  };
+  // Ни правила, ни модель не поняли ничего — вернуть человеку нечего.
+  if (recognizedNothing) {
+    return {
+      status: "rejected",
+      source: "rules+fallback",
+      code: "unrecognized",
+      message: "Не удалось понять запрос о поездке.",
+      hint:
+        "Назовите город отправления и когда хотите поехать. Например: «из Москвы на море в сентябре».",
+      missingFields: combinedMissingFields,
+      blockingFields: unresolvedBlocking,
+    };
+  }
+
+  // Что-то поняли, блокирующего не осталось — запускаем поиск с умолчаниями
+  // для необязательного. Отказывать из-за ненайденного бюджета или тега
+  // значило бы превратить свободную фразу в форму с обязательными полями.
+  return success(
+    withDefaults(combined, options.today),
+    "rules+fallback",
+    combinedMissingFields,
+  );
 }
 
 function parseOrigin(text: string): string | undefined {
@@ -121,8 +158,13 @@ function parseTravellers(text: string): TravellerMatch {
     childrenMentioned && childrenAges.length === 0;
 
   let adults: number | undefined;
-  if (/(?:вдвоем|на двоих)/u.test(text)) {
+  if (
+    /(?:вдвоем|на двоих)/u.test(text) ||
+    TWO_ADULT_PHRASES.some((phrase) => containsPhrase(text, phrase))
+  ) {
     adults = 2;
+  } else if (ONE_ADULT_PHRASES.some((phrase) => containsPhrase(text, phrase))) {
+    adults = 1;
   } else {
     const numericAdults = text.match(/(\d{1,2})\s*взросл(?:ых|ого|ый)/u);
     const wordAdults = text.match(
@@ -172,6 +214,27 @@ function isChildAge(age: number): boolean {
 
 function parseDateWindow(text: string, today: Date): DateWindow | undefined {
   const nights = parseNights(text) ?? DEFAULT_NIGHTS;
+
+  if (containsPhrase(text, "через месяц")) {
+    const date = addCalendarMonths(today, 1);
+    return { startDate: formatUtcDate(date), nights };
+  }
+
+  if (/на\s+выходн(?:ых|ые)/u.test(text)) {
+    const date = new Date(today.getTime());
+    const daysUntilSaturday = (6 - date.getUTCDay() + 7) % 7;
+    date.setUTCDate(date.getUTCDate() + daysUntilSaturday);
+    return { startDate: formatUtcDate(date), nights: 2 };
+  }
+
+  if (containsPhrase(text, "на новый год")) {
+    return relativeDateWindow(1, 1, undefined, nights, today);
+  }
+
+  if (containsPhrase(text, "на майские")) {
+    return relativeDateWindow(5, 1, undefined, nights, today);
+  }
+
   const isoDate = text.match(/(?:^|\s)(\d{4})-(\d{2})-(\d{2})(?=$|[\s,.;!?])/u);
   if (isoDate) {
     const year = Number(isoDate[1]);
@@ -196,6 +259,21 @@ function parseDateWindow(text: string, today: Date): DateWindow | undefined {
           monthEntry.month,
           Number(specificDate[1]),
           specificDate[2] ? Number(specificDate[2]) : undefined,
+          nights,
+          today,
+        );
+      }
+      const monthPart = text.match(
+        new RegExp(
+          `(?:^|[\\s,])в\\s+(начале|конце)\\s+${aliasPattern}(?=$|[\\s,.;!?])`,
+          "u",
+        ),
+      );
+      if (monthPart) {
+        return relativeDateWindow(
+          monthEntry.month,
+          monthPart[1] === "начале" ? 1 : 25,
+          undefined,
           nights,
           today,
         );
@@ -270,6 +348,13 @@ function parseNights(text: string): number | undefined {
 }
 
 function parseBudget(text: string): TripBudget | undefined {
+  const wordThousands = text.match(
+    /тысяч(?:а|и|у)?\s+за\s+(двадцать|тридцать|сорок|пятьдесят|шестьдесят|семьдесят|восемьдесят|девяносто)(?=$|[\s,.;!?])/u,
+  );
+  if (wordThousands) {
+    return totalBudget(RUSSIAN_BUDGET_TENS[wordThousands[1]] * 1_000);
+  }
+
   const thousands = text.match(
     /(\d+(?:[.,]\d+)?)\s*(?:к|k|тыс(?:\.|яч(?:а|и|у)?|(?=$|[\s,;!?])))(?!\s*(?:год(?:а)?|лет|ноч(?:ь|и|ей)|д(?:ень|ня|ней))(?=$|[\s,.;!?]))(?=$|[\s,.;!?])/u,
   );
@@ -285,9 +370,23 @@ function parseBudget(text: string): TripBudget | undefined {
   }
 
   const prefixed = text.match(
-    /(?:до|бюджет(?:ом)?\s+до)\s+(\d{4,})(?!\d|-\d)(?!\s*(?:год(?:а)?|лет|ноч(?:ь|и|ей)|д(?:ень|ня|ней))(?=$|[\s,.;!?]))/u,
+    /(?:до|бюджет(?:ом)?(?:\s+до)?)\s+(\d{4,})(?!\d|-\d)(?!\s*(?:год(?:а)?|лет|ноч(?:ь|и|ей)|д(?:ень|ня|ней))(?=$|[\s,.;!?]))/u,
   );
   return prefixed ? totalBudget(Number(prefixed[1])) : undefined;
+}
+
+function parseBudgetPreference(
+  text: string,
+): DiscoveryQuery["budgetPreference"] | undefined {
+  if (LOW_BUDGET_PHRASES.some((phrase) => containsPhrase(text, phrase))) {
+    return "low";
+  }
+  if (
+    UNRESTRICTED_BUDGET_PHRASES.some((phrase) => containsPhrase(text, phrase))
+  ) {
+    return "unrestricted";
+  }
+  return undefined;
 }
 
 function totalBudget(amount: number): TripBudget | undefined {
@@ -319,6 +418,7 @@ function mergeRuleAndFallbackResults(
       rules.vibeTags && rules.vibeTags.length > 0
         ? rules.vibeTags
         : fallback.vibeTags,
+    budgetPreference: rules.budgetPreference ?? fallback.budgetPreference,
   };
 }
 
@@ -344,7 +444,7 @@ function findMissingFields(
   if (!parsed.origin) missing.push("origin");
   if (!parsed.travellers) missing.push("travellers");
   if (!parsed.dateWindow) missing.push("dateWindow");
-  if (!parsed.budget) missing.push("budget");
+  if (!parsed.budget && !parsed.budgetPreference) missing.push("budget");
   if (!parsed.vibeTags || parsed.vibeTags.length === 0) missing.push("vibeTags");
   return missing;
 }
@@ -397,12 +497,71 @@ function clarificationRequired(
 function success(
   parsed: PartialDiscoveryQuery,
   source: "rules" | "rules+fallback",
+  assumedFields: DiscoveryRequiredField[] = [],
 ): DiscoveryParseResult {
   return {
     status: "success",
     source,
     query: parsed as DiscoveryQuery,
+    assumedFields,
   };
+}
+
+/** Число взрослых, когда состав не назван: человек ищет для себя. */
+const DEFAULT_ADULTS = 1;
+/** Через сколько дней начинается поездка, если период не назван. */
+const DEFAULT_LEAD_DAYS = 21;
+
+/**
+ * Во фразе есть указание на период, но разобрать его не удалось.
+ *
+ * Отличает «человек не назвал даты» от «человек назвал даты, но они не
+ * годятся»: первое достраивается умолчанием, второе возвращается ему.
+ */
+function mentionsUnusablePeriod(text: string): boolean {
+  const monthMentioned = MONTHS.some(({ aliases }) =>
+    aliases.some((alias) =>
+      new RegExp(`(?:^|[\\s,])${escapeRegExp(alias)}(?=$|[\\s,.;!?])`, "u").test(
+        text,
+      ),
+    ),
+  );
+  const isoMentioned = /\d{4}-\d{2}-\d{2}/u.test(text);
+  return monthMentioned || isoMentioned;
+}
+
+/**
+ * Заполняет ненайденные необязательные поля.
+ *
+ * Отсутствие бюджета — это не «бюджет ноль», а «ограничения нет»: поле
+ * остаётся пустым, и отбор направлений работает без ценового потолка.
+ * Отсутствие тегов означает, что человек не назвал формат отдыха, и
+ * подбирать нужно разнообразное, а не ничего.
+ */
+function withDefaults(
+  parsed: PartialDiscoveryQuery,
+  today: Date,
+): PartialDiscoveryQuery {
+  const filled: PartialDiscoveryQuery = { ...parsed };
+  if (!filled.travellers) {
+    filled.travellers = { adults: DEFAULT_ADULTS, childrenAges: [] };
+  }
+  if (!filled.dateWindow) {
+    const start = new Date(today.getTime());
+    start.setUTCDate(start.getUTCDate() + DEFAULT_LEAD_DAYS);
+    filled.dateWindow = {
+      startDate: formatDate(
+        start.getUTCFullYear(),
+        start.getUTCMonth() + 1,
+        start.getUTCDate(),
+      ),
+      nights: DEFAULT_NIGHTS,
+    };
+  }
+  if (!filled.vibeTags || filled.vibeTags.length === 0) {
+    filled.vibeTags = [];
+  }
+  return filled;
 }
 
 function removeMissingValues(parsed: PartialDiscoveryQuery): void {
@@ -448,4 +607,31 @@ function isCalendarDate(year: number, month: number, day: number): boolean {
 
 function formatDate(year: number, month: number, day: number): string {
   return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function formatUtcDate(date: Date): string {
+  return formatDate(
+    date.getUTCFullYear(),
+    date.getUTCMonth() + 1,
+    date.getUTCDate(),
+  );
+}
+
+function addCalendarMonths(date: Date, months: number): Date {
+  const result = new Date(date.getTime());
+  const day = result.getUTCDate();
+  result.setUTCDate(1);
+  result.setUTCMonth(result.getUTCMonth() + months);
+  const lastDay = new Date(
+    Date.UTC(result.getUTCFullYear(), result.getUTCMonth() + 1, 0),
+  ).getUTCDate();
+  result.setUTCDate(Math.min(day, lastDay));
+  return result;
+}
+
+function containsPhrase(text: string, phrase: string): boolean {
+  return new RegExp(
+    `(?:^|[\\s,.;!?])${escapeRegExp(phrase)}(?=$|[\\s,.;!?])`,
+    "u",
+  ).test(text);
 }
