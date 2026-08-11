@@ -79,6 +79,9 @@ describe("rule-based discovery query parsing", () => {
     "до 2027 года",
     "до 1000 ночей",
     "7 тыс. ночей",
+    "на 5 дней",
+    "на 3 ночи",
+    "2 года",
   ])("does not treat dates or durations as a budget: %s", async (phrase) => {
     const result = await parseTravelQuery(phrase, { today: TODAY });
 
@@ -125,6 +128,133 @@ describe("rule-based discovery query parsing", () => {
       });
     },
   );
+
+  it.each([
+    ["втроём", 3],
+    ["втроем", 3],
+    ["на троих", 3],
+    ["вчетвером", 4],
+    ["на четверых", 4],
+    ["впятером", 5],
+    ["на пятерых", 5],
+    ["трое взрослых", 3],
+  ])("normalizes larger traveller groups from %s", async (travellers, adults) => {
+    const result = await parseTravelQuery(
+      `на море в сентябре ${travellers} из Москвы до 60к`,
+      { today: TODAY },
+    );
+
+    expect(result.status).toBe("success");
+    if (result.status !== "success") {
+      throw new Error("Expected a successful parse");
+    }
+    expect(result.query.travellers).toEqual({ adults, childrenAges: [] });
+  });
+
+  it.each([
+    ["нас трое", 3],
+    ["3 человека", 3],
+    ["на 3 человек", 3],
+    ["4 чел", 4],
+    ["5 чел.", 5],
+    ["для троих", 3],
+    ["семьёй из четырёх человек", 4],
+    ["из 7 человек", 7],
+    ["вшестером", 6],
+    ["всемером", 7],
+    ["ввосьмером", 8],
+    ["вдевятером", 9],
+    ["на шестерых", 6],
+    ["на семерых", 7],
+    ["на восьмерых", 8],
+    ["на девятерых", 9],
+  ])("parses common group-size form %s", async (travellers, adults) => {
+    const result = await parseTravelQuery(
+      `на море в сентябре ${travellers} из Москвы до 60к`,
+      { today: TODAY },
+    );
+
+    expect(result.status).toBe("success");
+    if (result.status !== "success") {
+      throw new Error("Expected a successful parse");
+    }
+    expect(result.query.travellers).toEqual({ adults, childrenAges: [] });
+  });
+
+  it.each([
+    ["нас двое", 2],
+    ["нас трое", 3],
+    ["нас четверо", 4],
+    ["нас пятеро", 5],
+    ["нас шестеро", 6],
+    ["нас семеро", 7],
+    ["для двоих", 2],
+    ["для троих", 3],
+    ["для четверых", 4],
+    ["для пятерых", 5],
+    ["из двух человек", 2],
+    ["из трёх человек", 3],
+    ["из четырёх человек", 4],
+    ["из пяти человек", 5],
+    ["из шести человек", 6],
+    ["из семи человек", 7],
+  ])("parses word-based group size %s", async (travellers, adults) => {
+    const result = await parseTravelQuery(
+      `на море в сентябре ${travellers} из Москвы до 60к`,
+      { today: TODAY },
+    );
+
+    expect(result.status).toBe("success");
+    if (result.status !== "success") {
+      throw new Error("Expected a successful parse");
+    }
+    expect(result.query.travellers).toEqual({ adults, childrenAges: [] });
+  });
+
+  it.each([
+    "на 5 дней",
+    "на 3 ночи",
+    "ребёнку 2 года",
+    "до 30 000",
+    "в 2 звезды",
+    "за 3 часа",
+    "на 100 человек",
+    "10 взрослых",
+    "вдесятером",
+  ])("does not infer travellers from unrelated or oversized count: %s", async (phrase) => {
+    const fallback: DiscoveryFallbackParser = {
+      parse: vi.fn().mockResolvedValue(null),
+    };
+    const result = await parseTravelQuery(
+      `на море в сентябре из Москвы ${phrase}`,
+      { today: TODAY, fallback },
+    );
+
+    expect(result.status).toBe("success");
+    if (result.status !== "success") {
+      throw new Error("Expected a successful parse with defaults");
+    }
+    expect(result.query.travellers).toEqual({ adults: 1, childrenAges: [] });
+    expect(result.assumedFields).toContain("travellers");
+  });
+
+  it.each([
+    ["до 30 000", 30_000],
+    ["до 30\u00a0000", 30_000],
+    ["до 30000", 30_000],
+    ["30 000 рублей", 30_000],
+  ])("parses grouped digits in budget: %s", async (budget, amount) => {
+    const result = await parseTravelQuery(
+      `на море в сентябре вдвоём из Москвы ${budget}`,
+      { today: TODAY },
+    );
+
+    expect(result.status).toBe("success");
+    if (result.status !== "success") {
+      throw new Error("Expected a successful parse");
+    }
+    expect(result.query.budget.amount).toBe(amount);
+  });
 
   it("extracts adults and child ages without guessing them", async () => {
     const result = await parseTravelQuery(

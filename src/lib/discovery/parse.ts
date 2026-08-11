@@ -149,6 +149,56 @@ interface TravellerMatch {
   childrenMentionedWithoutAges: boolean;
 }
 
+const MAX_RULE_BASED_ADULTS = 9;
+
+const GROUP_SIZE_WORDS: Readonly<Record<string, number>> = {
+  двое: 2,
+  двух: 2,
+  двоих: 2,
+  трое: 3,
+  трех: 3,
+  троих: 3,
+  четверо: 4,
+  четырех: 4,
+  четверых: 4,
+  пятеро: 5,
+  пяти: 5,
+  пятерых: 5,
+  шестеро: 6,
+  шести: 6,
+  шестерых: 6,
+  семеро: 7,
+  семи: 7,
+  семерых: 7,
+  восьми: 8,
+  восьмерых: 8,
+  девяти: 9,
+  девятерых: 9,
+  десяти: 10,
+  десятерых: 10,
+};
+
+const GROUP_SIZE_PHRASES: ReadonlyArray<readonly [string, number]> = [
+  ["вдвоем", 2],
+  ["втроем", 3],
+  ["вчетвером", 4],
+  ["впятером", 5],
+  ["вшестером", 6],
+  ["всемером", 7],
+  ["ввосьмером", 8],
+  ["вдевятером", 9],
+  ["вдесятером", 10],
+  ["на двоих", 2],
+  ["на троих", 3],
+  ["на четверых", 4],
+  ["на пятерых", 5],
+  ["на шестерых", 6],
+  ["на семерых", 7],
+  ["на восьмерых", 8],
+  ["на девятерых", 9],
+  ["на десятерых", 10],
+];
+
 function parseTravellers(text: string): TravellerMatch {
   const childrenMentioned = /(?:дет(?:и|ей|ьми)|ребен(?:ок|ком|ка))/u.test(
     text,
@@ -157,31 +207,24 @@ function parseTravellers(text: string): TravellerMatch {
   const childrenMentionedWithoutAges =
     childrenMentioned && childrenAges.length === 0;
 
-  let adults: number | undefined;
-  if (
-    /(?:вдвоем|на двоих)/u.test(text) ||
-    TWO_ADULT_PHRASES.some((phrase) => containsPhrase(text, phrase))
-  ) {
-    adults = 2;
-  } else if (ONE_ADULT_PHRASES.some((phrase) => containsPhrase(text, phrase))) {
-    adults = 1;
-  } else {
-    const numericAdults = text.match(/(\d{1,2})\s*взросл(?:ых|ого|ый)/u);
-    const wordAdults = text.match(
-      /(?:один|одна)\s+взросл|двое\s+взросл|трое\s+взросл/u,
-    );
-    if (numericAdults) {
-      adults = Number(numericAdults[1]);
-    } else if (wordAdults?.[0].startsWith("двое")) {
+  let adults = parseExplicitAdultCount(text);
+  if (adults === undefined) {
+    if (TWO_ADULT_PHRASES.some((phrase) => containsPhrase(text, phrase))) {
       adults = 2;
-    } else if (wordAdults?.[0].startsWith("трое")) {
-      adults = 3;
-    } else if (wordAdults) {
+    } else if (
+      ONE_ADULT_PHRASES.some((phrase) => containsPhrase(text, phrase))
+    ) {
       adults = 1;
     }
   }
 
-  if (!adults || childrenMentionedWithoutAges) {
+  // Не обрезаем большие группы до лимита: это молча изменило бы явно названный
+  // состав. Значения вне 1–9 не принимаем и оставляем fallback/умолчанию.
+  if (
+    !adults ||
+    adults > MAX_RULE_BASED_ADULTS ||
+    childrenMentionedWithoutAges
+  ) {
     return { childrenMentionedWithoutAges };
   }
 
@@ -189,6 +232,44 @@ function parseTravellers(text: string): TravellerMatch {
     value: { adults, childrenAges },
     childrenMentionedWithoutAges,
   };
+}
+
+function parseExplicitAdultCount(text: string): number | undefined {
+  const numericAdults = text.match(
+    /(?:^|[\s,.;!?])(\d{1,3})\s*взросл(?:ых|ого|ый)(?=$|[\s,.;!?])/u,
+  );
+  if (numericAdults) return Number(numericAdults[1]);
+
+  const numericPeople = text.match(
+    /(?:^|[\s,.;!?])(\d{1,3})\s*(?:человек(?:а)?|чел\.?)(?=$|[\s,.;!?])/u,
+  );
+  if (numericPeople) return Number(numericPeople[1]);
+
+  const oneAdult = text.match(
+    /(?:^|[\s,.;!?])(?:один|одна)\s+взросл/u,
+  );
+  if (oneAdult) return 1;
+
+  const wordPattern = Object.keys(GROUP_SIZE_WORDS)
+    .sort((left, right) => right.length - left.length)
+    .join("|");
+  const wordPeople = text.match(
+    new RegExp(
+      `(?:^|[\\s,.;!?])(${wordPattern})\\s+(?:человек(?:а)?|взросл(?:ых|ого|ый))(?=$|[\\s,.;!?])`,
+      "u",
+    ),
+  );
+  if (wordPeople) return GROUP_SIZE_WORDS[wordPeople[1]];
+
+  const contextualWord = text.match(
+    new RegExp(
+      `(?:^|[\\s,.;!?])(?:нас|для)\\s+(${wordPattern})(?=$|[\\s,.;!?])`,
+      "u",
+    ),
+  );
+  if (contextualWord) return GROUP_SIZE_WORDS[contextualWord[1]];
+
+  return GROUP_SIZE_PHRASES.find(([phrase]) => containsPhrase(text, phrase))?.[1];
 }
 
 function parseChildAges(text: string): number[] {
@@ -370,9 +451,11 @@ function parseBudget(text: string): TripBudget | undefined {
   }
 
   const prefixed = text.match(
-    /(?:до|бюджет(?:ом)?(?:\s+до)?)\s+(\d{4,})(?!\d|-\d)(?!\s*(?:год(?:а)?|лет|ноч(?:ь|и|ей)|д(?:ень|ня|ней))(?=$|[\s,.;!?]))/u,
+    /(?:до|бюджет(?:ом)?(?:\s+до)?)\s+(\d(?:\s?\d){3,})(?!\d|-\d)(?!\s*(?:год(?:а)?|лет|ноч(?:ь|и|ей)|д(?:ень|ня|ней))(?=$|[\s,.;!?]))/u,
   );
-  return prefixed ? totalBudget(Number(prefixed[1])) : undefined;
+  return prefixed
+    ? totalBudget(Number(prefixed[1].replace(/\s/gu, "")))
+    : undefined;
 }
 
 function parseBudgetPreference(
