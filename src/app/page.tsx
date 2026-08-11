@@ -48,12 +48,9 @@ export default function Home() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col bg-canvas px-4 py-8 text-ink sm:px-8 sm:py-14">
-      <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col">
+    <main className="flex flex-1 flex-col bg-canvas text-ink">
+      <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 py-8 sm:px-8 sm:py-12">
         <header className="max-w-3xl">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-ink-muted">
-            tutu-swipe
-          </p>
           <h1 className="text-3xl font-semibold tracking-tight sm:text-5xl">
             Куда отправимся?
           </h1>
@@ -72,13 +69,13 @@ export default function Home() {
             value={input}
             onChange={(event) => setInput(event.target.value)}
             placeholder="Из Москвы на море в сентябре вдвоём"
-            className="min-w-0 flex-1 rounded-md border border-divider bg-surface px-5 py-4 text-base text-ink outline-none transition placeholder:text-ink-faint focus:border-accent"
+            className="min-w-0 flex-1 rounded-md border border-divider bg-field px-5 py-4 text-base text-ink outline-none transition placeholder:text-ink-muted focus:border-action focus:bg-surface"
             autoComplete="off"
           />
           <button
             type="submit"
             disabled={loading || !input.trim()}
-            className="rounded-md bg-action px-6 py-4 text-base font-semibold text-ink transition hover:bg-action-strong disabled:cursor-not-allowed disabled:opacity-45"
+            className="rounded-md bg-action px-7 py-4 text-base font-semibold text-white transition hover:bg-action-strong disabled:cursor-not-allowed disabled:opacity-40"
           >
             {loading ? "Ищем…" : "Найти"}
           </button>
@@ -146,7 +143,7 @@ function Result({ result }: { result: ScreenResult | undefined }) {
 function TripCardView({ card }: { card: SearchOnceCard }) {
   return (
     <article className="flex flex-col rounded-lg bg-surface p-5 shadow-card sm:p-6">
-      <p className="text-sm font-medium text-accent">
+      <p className="text-sm font-medium text-ink-muted">
         {card.stay?.checkIn} — {card.stay?.checkOut}
       </p>
       <h3 className="mt-2 text-2xl font-semibold sm:text-3xl">{card.destination}</h3>
@@ -155,7 +152,7 @@ function TripCardView({ card }: { card: SearchOnceCard }) {
         {card.hotel.address ?? "Адрес уточняется на Туту"}
       </p>
 
-      <dl className="mt-5 space-y-2 border-t border-divider pt-4 text-sm">
+      <dl className="mt-5 space-y-2 rounded-lg bg-indigo p-4 text-sm">
         <PriceRow
           label={card.price.breakdown.transport.label}
           amount={card.price.breakdown.transport.amount}
@@ -166,9 +163,9 @@ function TripCardView({ card }: { card: SearchOnceCard }) {
           amount={card.price.breakdown.accommodation.amount}
           currency={card.price.breakdown.accommodation.currency}
         />
-        <div className="flex items-baseline justify-between gap-3 pt-3 text-base font-semibold">
-          <dt>Итого</dt>
-          <dd className="text-xl">
+        <div className="flex items-end justify-between gap-3 border-t border-white/20 pt-3 text-base font-semibold">
+          <dt className="text-ink-on-dark">Итого</dt>
+          <dd className="text-2xl font-bold text-price">
             {formatMoney(card.price.total.amount, card.price.total.currency)}
           </dd>
         </div>
@@ -181,7 +178,7 @@ function TripCardView({ card }: { card: SearchOnceCard }) {
         href={card.tutuUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="mt-4 rounded-md bg-action px-4 py-3.5 text-center font-semibold text-ink transition hover:bg-action-strong"
+        className="mt-4 rounded-md bg-action px-4 py-3.5 text-center font-semibold text-white transition hover:bg-action-strong"
       >
         {linkLabel(card.linkKind)}
       </a>
@@ -204,7 +201,7 @@ function AssumedFieldsNote({
         {chips.map((chip) => (
           <span
             key={chip.field}
-            className="rounded-sm bg-accent-soft px-3 py-1.5 text-sm font-medium text-ink"
+            className="rounded-sm bg-action-soft px-3 py-1.5 text-sm font-medium text-ink"
           >
             {chip.label}
             <span className="text-ink-muted"> · подставлено</span>
@@ -229,7 +226,7 @@ function PriceRow({
   currency: string;
 }) {
   return (
-    <div className="flex justify-between gap-3 text-ink-muted">
+    <div className="flex justify-between gap-3 text-ink-on-dark/80">
       <dt>{label}</dt>
       <dd>{formatMoney(amount, currency)}</dd>
     </div>
@@ -245,7 +242,7 @@ function Message({
 }) {
   return (
     <section
-      className="mt-10 max-w-3xl rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-950"
+      className="mt-10 max-w-3xl rounded-lg border border-warn/30 bg-warn-soft p-5 text-ink"
       aria-live="polite"
     >
       <h2 className="font-semibold">{title}</h2>

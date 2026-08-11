@@ -55,12 +55,9 @@ export function ListPageClient({
   }
 
   return (
-    <main className="min-h-screen bg-canvas px-4 py-8 text-ink sm:px-8 sm:py-12">
+    <main className="flex-1 bg-canvas px-4 py-8 text-ink sm:px-8 sm:py-12">
       <div className="mx-auto max-w-2xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-muted">
-          tutu-swipe
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight">
+        <h1 className="text-3xl font-semibold tracking-tight">
           Подборка поездок
         </h1>
         <p className="mt-2 text-ink-muted">
@@ -72,23 +69,29 @@ export function ListPageClient({
         <div className="mt-6 grid gap-4">
           {result.trips.map((trip) => (
             <article
-              className="rounded-lg bg-surface p-5 shadow-card sm:p-6"
+              className="overflow-hidden rounded-lg bg-surface p-5 shadow-card sm:p-6"
               key={`${trip.destination}:${trip.hotelName}`}
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h2 className="text-2xl font-semibold">{trip.destination}</h2>
-                  <p className="mt-1 text-ink-muted">{trip.hotelName}</p>
+                  <p className="mt-2 font-medium">{trip.hotelName}</p>
+                  <p className="mt-1 text-sm text-ink-muted">
+                    Жильё и дорога пересобраны по параметрам подборки
+                  </p>
                 </div>
                 {trip.replaced ? (
-                  <span className="rounded-full border border-warn/30 bg-warn-soft px-3 py-1 text-sm font-medium text-ink">
+                  <span className="rounded-md border border-warn/30 bg-warn-soft px-3 py-1 text-sm font-medium text-ink">
                     Предложение заменено
                   </span>
                 ) : null}
               </div>
-              <p className="mt-5 text-xl font-semibold">
-                {formatMoney(trip.totalAmount, trip.currency)}
-              </p>
+              <div className="mt-5 flex items-end justify-between gap-3 rounded-lg bg-indigo p-4">
+                <span className="text-sm font-semibold text-ink-on-dark">Итого</span>
+                <p className="text-3xl font-bold tracking-tight text-price">
+                  {formatMoney(trip.totalAmount, trip.currency)}
+                </p>
+              </div>
               {trip.replaced ? (
                 <p className="mt-2 text-sm leading-6 text-ink-muted">
                   Исходный вариант исчез, поэтому показан лучший актуальный по тем же параметрам.
@@ -99,7 +102,7 @@ export function ListPageClient({
                   href={trip.tutuUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-5 block rounded-md bg-action px-4 py-3.5 text-center font-semibold text-ink transition hover:bg-action-strong"
+                  className="mt-5 block rounded-md bg-action px-4 py-3.5 text-center font-semibold text-white transition hover:bg-action-strong"
                 >
                   Смотреть на Туту
                 </a>
@@ -135,7 +138,7 @@ function ShareButton() {
       <button
         type="button"
         onClick={() => void share()}
-        className="rounded-md bg-accent px-5 py-3.5 font-semibold text-white transition hover:bg-accent/90"
+        className="w-full rounded-md bg-action px-5 py-3.5 font-semibold text-white transition hover:bg-action-strong sm:w-auto"
       >
         Поделиться
       </button>
@@ -158,7 +161,7 @@ function Message({
   children: React.ReactNode;
 }) {
   return (
-    <main className="grid min-h-screen place-items-center bg-canvas px-5 text-ink">
+    <main className="grid flex-1 place-items-center bg-canvas px-5 py-12 text-ink">
       <section className="max-w-lg rounded-lg bg-surface p-8 shadow-card">
         <h1 className="text-2xl font-semibold">{title}</h1>
         <p className="mt-3 leading-7 text-ink-muted">{children}</p>

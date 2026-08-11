@@ -98,14 +98,14 @@ export function CheckoutButton({
           href={link.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="block rounded-md bg-action px-4 py-3.5 text-center font-semibold text-ink transition hover:bg-action-strong"
+          className="block rounded-md bg-action px-4 py-3.5 text-center font-semibold text-white transition hover:bg-action-strong"
         >
           {link.label}
         </a>
       ) : (
         <span
           aria-live="polite"
-          className="block rounded-md bg-canvas px-4 py-3.5 text-center font-medium text-ink-muted"
+          className="block rounded-md bg-field px-4 py-3.5 text-center font-medium text-ink-muted"
         >
           Готовим переход…
         </span>

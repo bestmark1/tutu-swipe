@@ -124,6 +124,11 @@ describe("shared list page", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "Поделиться" }));
 
+    expect(screen.getByRole("button", { name: "Поделиться" })).toHaveClass(
+      "bg-action",
+      "text-white",
+    );
+    expect(screen.getByText("52 000 ₽")).toHaveClass("text-price", "text-3xl");
     expect(writeText).toHaveBeenCalledWith(window.location.href);
     expect(
       await screen.findByText(/Ссылка скопирована/iu),

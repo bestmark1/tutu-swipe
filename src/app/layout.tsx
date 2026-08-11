@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
+import { SiteHeader } from "./_components/site-header";
+
 export const metadata: Metadata = {
   title: "tutu-swipe — подбор путешествий",
   description:
@@ -8,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f5f5f9",
+  themeColor: "#0d0b68",
 };
 
 export default function RootLayout({
@@ -19,6 +21,7 @@ export default function RootLayout({
   return (
     <html lang="ru" className="h-full antialiased">
       <body className="flex min-h-full flex-col bg-canvas text-ink">
+        <SiteHeader />
         {children}
         <footer className="border-t border-divider px-4 py-6 sm:px-8">
           <p className="mx-auto w-full max-w-5xl text-xs leading-5 text-ink-muted">

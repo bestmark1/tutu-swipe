@@ -3,37 +3,48 @@
 /*
  * Визуальный язык в стиле Туту.
  *
- * Палитра снята с живого tutu.ru 2026-08-07, значения точные — это не
- * приблизительная стилизация «под похожее», а те же цвета, которыми
- * пользуется сервис. Продукт должен читаться как часть их экосистемы.
+ * Палитра снята с живого tutu.ru 2026-08-07 ПО КОНКРЕТНЫМ ЭЛЕМЕНТАМ, а не по
+ * частоте использования в CSS. Первая версия делалась частотным анализом и
+ * дала служебный зелёный в роли главной кнопки — цвета, которого в фирменном
+ * языке Туту нет вовсе. Индиго при этом не попал в выборку: он занимает мало
+ * элементов, но много экрана.
  *
- * Чего здесь намеренно нет: фирменных шрифтов Direct и Tutu Sans. Они
- * проприетарные, файлы лицензированы, и тянуть их к себе нельзя. Взят
- * системный стек с похожим характером — геометричный гротеск.
+ * Смысл цветов:
+ *   индиго     — шапка и тёмные зоны, якорь узнавания
+ *   фиолетовый — главное действие: всё, что нажимается и ведёт вперёд
+ *   оранжевый  — цена и выгода, точечно; при частом употреблении перестаёт работать
+ *   белый      — фон страницы
+ *   #F5F5F9    — фон полей и вторичных блоков, НЕ фон страницы
  *
- * Тёмная тема не поддерживается сознательно: у Туту её нет, а изобретать
- * свою — значит перестать быть похожими ровно там, где похожесть нужна.
+ * Чего здесь нет: проприетарных шрифтов Direct и Tutu Sans — они лицензированы.
+ * Взят системный стек с похожим характером.
+ *
+ * Тёмной темы нет сознательно: у Туту её нет, а своя сломала бы узнавание.
  */
 
 :root {
   /* Текст */
   --tutu-ink: #181c2d;
   --tutu-ink-muted: #555a7a;
-  --tutu-ink-faint: #7d82a0;
+  --tutu-ink-faint: #6f748f;
+  --tutu-ink-on-dark: #f5f5f9;
 
   /* Поверхности */
-  --tutu-canvas: #f5f5f9;
+  --tutu-canvas: #ffffff;
   --tutu-surface: #ffffff;
+  --tutu-field: #f5f5f9;
+  --tutu-indigo: #0d0b68;
 
-  /* Действие и акцент */
-  --tutu-action: #48a22b;
-  --tutu-action-strong: #3d8a24;
-  --tutu-accent: #6f5df6;
-  --tutu-accent-soft: #eff0ff;
+  /* Действие и акценты */
+  --tutu-action: #6f5df6;
+  --tutu-action-strong: #5b48e0;
+  --tutu-action-soft: #eff0ff;
+  --tutu-price: #f05800; /* 3.44:1 на белом: только для крупного текста от 24px bold; не использовать для мелкого текста на белом. */
+  --tutu-price-soft: #fff2e9;
 
   /* Служебные */
   --tutu-divider: rgba(125, 130, 160, 0.15);
-  --tutu-warning: #b8641a;
+  --tutu-warning: #806847;
   --tutu-warning-soft: #fdf3e7;
 }
 
@@ -41,22 +52,26 @@
   --color-ink: var(--tutu-ink);
   --color-ink-muted: var(--tutu-ink-muted);
   --color-ink-faint: var(--tutu-ink-faint);
+  --color-ink-on-dark: var(--tutu-ink-on-dark);
   --color-canvas: var(--tutu-canvas);
   --color-surface: var(--tutu-surface);
+  --color-field: var(--tutu-field);
+  --color-indigo: var(--tutu-indigo);
   --color-action: var(--tutu-action);
   --color-action-strong: var(--tutu-action-strong);
-  --color-accent: var(--tutu-accent);
-  --color-accent-soft: var(--tutu-accent-soft);
+  --color-action-soft: var(--tutu-action-soft);
+  --color-price: var(--tutu-price);
+  --color-price-soft: var(--tutu-price-soft);
   --color-divider: var(--tutu-divider);
   --color-warn: var(--tutu-warning);
   --color-warn-soft: var(--tutu-warning-soft);
 
-  /* Скругления Туту: 12 мелкое, 16 кнопки и поля, 24 карточки */
-  --radius-sm: 12px;
-  --radius-md: 16px;
-  --radius-lg: 24px;
+  /* Скругления Туту: кнопки 10-12, карточки 12-24 */
+  --radius-sm: 10px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
 
-  /* Тени: мягкая у карточек покоя, выраженная у активной карточки ленты */
   --shadow-card: 0 1px 2px rgb(24 28 45 / 0.05), 0 4px 16px rgb(24 28 45 / 0.07);
   --shadow-lift: 0 2px 4px rgb(24 28 45 / 0.06), 0 12px 32px rgb(24 28 45 / 0.12);
 
@@ -74,11 +89,11 @@ body {
 
 /* Видимый фокус обязателен: лентой пользуются и с клавиатуры. */
 :focus-visible {
-  outline: 2px solid var(--tutu-accent);
+  outline: 2px solid var(--tutu-action);
   outline-offset: 2px;
 }
 
-/* Уважение к системной настройке: анимации свайпа не должны укачивать. */
+/* Анимации свайпа не должны укачивать. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

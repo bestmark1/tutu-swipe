@@ -46,11 +46,33 @@ function card(destination: string, amount = 50_000) {
       carriers: ["Туту"],
       departureAt: "2026-09-10T09:00:00+03:00",
       arrivalAt: "2026-09-10T19:00:00+03:00",
-      legs: [],
+      legs: [
+        {
+          label: "outbound",
+          from: "Москва",
+          to: destination,
+          departureAt: "2026-09-10T09:00:00+03:00",
+          arrivalAt: "2026-09-10T19:00:00+03:00",
+          durationMinutes: 600,
+          segments: [
+            {
+              from: "Москва",
+              to: destination,
+              departureAt: "2026-09-10T09:00:00+03:00",
+              arrivalAt: "2026-09-10T19:00:00+03:00",
+              durationMinutes: 600,
+              carrier: "Туту",
+            },
+          ],
+        },
+      ],
     },
     hotel: {
       id: `hotel-${destination}`,
       name: `Отель ${destination}`,
+      stars: 4,
+      rating: 8.7,
+      reviewCount: 120,
       address: "В центре",
       photos: [],
       bestOffer: {
@@ -151,6 +173,35 @@ describe("swipe feed", () => {
 
     controller!.enqueue(encoder.encode(`${JSON.stringify(doneEvent())}\n`));
     controller!.close();
+  });
+
+  it("F24: presents the trip as a compact Tutu-style offer", async () => {
+    render(
+      <SwipeFeed
+        initialQuery="поездка"
+        initialSession={session()}
+        fetcher={vi.fn(async () =>
+          responseFor([appendEvent("snapshot-1", "Сочи"), doneEvent()]),
+        )}
+        sessionClient={sessionClient()}
+        storageKey="tutu-style"
+      />,
+    );
+
+    await screen.findByRole("heading", { name: "Сочи" });
+    expect(screen.getByText("Поезд · 10 ч · без пересадок")).toBeVisible();
+    expect(screen.getByText("4 ★ · 8,7 из 10 · 120 отзывов")).toBeVisible();
+    expect(screen.getByText(/Почему этот вариант:/u).parentElement).toHaveClass(
+      "bg-action-soft",
+    );
+    expect(screen.getByText("50 000 ₽")).toHaveClass("text-price", "text-3xl");
+    expect(screen.getByRole("button", { name: "Нравится" })).toHaveClass(
+      "bg-action",
+      "text-white",
+    );
+    expect(screen.getByRole("button", { name: "Не нравится" })).toHaveClass(
+      "bg-field",
+    );
   });
 
   it("AC7a: replaces a snapshot card in place instead of appending a duplicate", async () => {

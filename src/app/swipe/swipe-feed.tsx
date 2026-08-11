@@ -315,13 +315,10 @@ export function SwipeFeed({
       : [];
 
   return (
-    <main className="min-h-screen bg-canvas px-4 py-8 text-ink sm:px-8 sm:py-12">
+    <main className="flex-1 bg-canvas px-4 py-8 text-ink sm:px-8 sm:py-12">
       <div className="mx-auto max-w-xl">
         <header>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-muted">
-            tutu-swipe
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
+          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
             Лента поездок
           </h1>
         </header>
@@ -363,14 +360,14 @@ export function SwipeFeed({
                 type="button"
                 onClick={() => void undo()}
                 disabled={reactionPending || reactionCount === 0}
-                className="rounded-md border border-divider bg-surface px-4 py-3 text-sm font-medium text-ink transition hover:bg-accent-soft disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-md border border-divider bg-surface px-4 py-3 text-sm font-medium text-ink transition hover:bg-action-soft disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Отменить реакцию
               </button>
               <button
                 type="button"
                 onClick={startNewSearch}
-                className="px-2 py-3 text-sm font-medium text-ink-muted transition hover:text-ink"
+                className="px-2 py-3 text-sm font-medium text-action transition hover:text-action-strong"
               >
                 Новый поиск
               </button>
@@ -402,12 +399,12 @@ function SearchForm({
         onChange={(event) => onInput(event.target.value)}
         placeholder={DEFAULT_QUERY}
         rows={4}
-        className="w-full resize-none rounded-md border border-divider bg-surface px-4 py-3 text-ink outline-none transition placeholder:text-ink-faint focus:border-accent"
+        className="w-full resize-none rounded-md border border-divider bg-field px-4 py-3 text-ink outline-none transition placeholder:text-ink-muted focus:border-action focus:bg-surface"
       />
       <button
         type="submit"
         disabled={!input.trim()}
-        className="w-full rounded-md bg-action px-5 py-4 text-base font-semibold text-ink transition hover:bg-action-strong disabled:cursor-not-allowed disabled:opacity-45"
+        className="w-full rounded-md bg-action px-5 py-4 text-base font-semibold text-white transition hover:bg-action-strong disabled:cursor-not-allowed disabled:opacity-45"
       >
         Подобрать поездки
       </button>
@@ -439,42 +436,49 @@ function TripCard({
       onPointerDown={onPointerDown}
       onPointerUp={onPointerUp}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-medium text-accent">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-3xl font-semibold tracking-tight">{card.destination}</h2>
+          <p className="mt-1 text-sm font-medium text-ink-muted">
             {formatStay(card.stay)}
           </p>
-          <h2 className="mt-1 text-3xl font-semibold">{card.destination}</h2>
         </div>
         {item.updated ? (
-          <span className="rounded-full bg-accent-soft px-3 py-1 text-xs font-medium text-ink">
+          <span className="rounded-md bg-action-soft px-3 py-1 text-xs font-medium text-ink">
             Данные обновлены
           </span>
         ) : null}
       </div>
 
       {item.isNewDestination ? (
-        <p className="mt-3 text-sm font-medium text-accent">
+        <p className="mt-3 text-sm font-medium text-ink-muted">
           Найдено новое направление
         </p>
       ) : null}
 
-      <section className="mt-5 border-t border-divider pt-5" aria-label="Дорога">
-        <h3 className="font-semibold">Дорога</h3>
-        <p className="mt-1 text-sm text-ink-muted">
-          {transportLabel(card.transport.transport)} · {durationLabel(card.transport.durationMinutes)}
+      <section className="mt-5 rounded-lg bg-field px-4 py-3" aria-label="Дорога">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+          Дорога
+        </h3>
+        <p className="mt-1 text-sm font-semibold text-ink">
+          {transportLabel(card.transport.transport)} · {durationLabel(card.transport.durationMinutes)} · {transferLabel(card.transport.legs)}
         </p>
         <p className="mt-1 text-sm text-ink-muted">
           {formatDateTime(card.transport.departureAt)} — {formatDateTime(card.transport.arrivalAt)}
         </p>
         {card.transport.carriers.length > 0 ? (
-          <p className="mt-1 text-sm text-ink-muted">{card.transport.carriers.join(", ")}</p>
+          <p className="mt-1 text-xs text-ink-muted">{card.transport.carriers.join(", ")}</p>
         ) : null}
       </section>
 
-      <section className="mt-5 border-t border-divider pt-5" aria-label="Жильё">
-        <h3 className="font-semibold">Жильё</h3>
-        <p className="mt-1">{card.hotel.name}</p>
+      <section className="mt-4 px-1" aria-label="Жильё">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+          Жильё
+        </h3>
+        <p className="mt-1 font-semibold">{card.hotel.name}</p>
+        <p className="mt-1 text-sm text-ink-muted">
+          {hotelDetails(card.hotel)}
+        </p>
         <p className="mt-1 text-sm text-ink-muted">
           {card.hotel.address ?? "Адрес уточняется"}
         </p>
@@ -488,12 +492,17 @@ function TripCard({
         </ul>
       ) : null}
 
-      <dl className="mt-5 space-y-2 border-t border-divider pt-5 text-sm">
+      <p className="mt-5 rounded-md bg-action-soft px-4 py-3 text-sm leading-6 text-ink">
+        <span className="font-semibold">Почему этот вариант:</span>{" "}
+        {recommendationLabel(card)}
+      </p>
+
+      <dl className="mt-5 space-y-2 rounded-lg bg-indigo p-4 text-sm">
         <PriceRow component={card.price.breakdown.transport} />
         <PriceRow component={card.price.breakdown.accommodation} />
-        <div className="flex items-baseline justify-between gap-3 pt-2 font-semibold">
-          <dt>Итого</dt>
-          <dd className="text-2xl">
+        <div className="flex items-end justify-between gap-3 border-t border-white/20 pt-3 font-semibold">
+          <dt className="text-ink-on-dark">Итого</dt>
+          <dd className="text-3xl font-bold tracking-tight text-price">
             {formatMoney(card.price.total.amount, card.price.total.currency)}
           </dd>
         </div>
@@ -508,7 +517,7 @@ function TripCard({
           type="button"
           disabled={disabled}
           onClick={onDislike}
-          className="min-h-14 rounded-md border border-divider bg-surface px-4 text-base font-semibold text-ink transition hover:bg-accent-soft disabled:cursor-not-allowed disabled:opacity-45"
+          className="min-h-14 rounded-md border border-divider bg-field px-4 text-base font-semibold text-ink transition hover:bg-action-soft disabled:cursor-not-allowed disabled:opacity-45"
         >
           Не нравится
         </button>
@@ -516,7 +525,7 @@ function TripCard({
           type="button"
           disabled={disabled}
           onClick={onLike}
-          className="min-h-14 rounded-md bg-action px-4 text-base font-semibold text-ink transition hover:bg-action-strong disabled:cursor-not-allowed disabled:opacity-45"
+          className="min-h-14 rounded-md bg-action px-4 text-base font-semibold text-white transition hover:bg-action-strong disabled:cursor-not-allowed disabled:opacity-45"
         >
           Нравится
         </button>
@@ -531,7 +540,7 @@ function PriceRow({
   component: { label: string; amount: number; currency: string };
 }) {
   return (
-    <div className="flex justify-between gap-3 text-ink-muted">
+    <div className="flex justify-between gap-3 text-ink-on-dark/80">
       <dt>{component.label}</dt>
       <dd>{formatMoney(component.amount, component.currency)}</dd>
     </div>
@@ -647,7 +656,7 @@ function AssumedChips({
           type="button"
           onClick={onEdit}
           title="Подставлено автоматически. Нажмите, чтобы уточнить запрос"
-          className="rounded-sm bg-accent-soft px-3 py-1.5 text-sm font-medium text-ink transition hover:bg-accent/15"
+          className="rounded-sm bg-action-soft px-3 py-1.5 text-sm font-medium text-ink transition hover:bg-action/15"
         >
           {chip.label}
           <span className="text-ink-muted"> · подставлено</span>
@@ -935,10 +944,67 @@ function durationLabel(minutes: number): string {
 }
 
 function transportLabel(value: string): string {
-  if (value === "train") return "Поезд";
-  if (value === "plane") return "Самолёт";
+  if (value === "train" || value === "rail" || value === "etrain") return "Поезд";
+  if (value === "plane" || value === "air" || value === "avia") return "Самолёт";
   if (value === "bus") return "Автобус";
   return value;
+}
+
+function transferLabel(
+  legs: CardEvent["card"]["transport"]["legs"],
+): string {
+  const count = transferCount(legs);
+  if (count === undefined) return "пересадки уточняются";
+  if (count === 0) return "без пересадок";
+  return `${count} ${plural(count, "пересадка", "пересадки", "пересадок")}`;
+}
+
+function transferCount(
+  legs: CardEvent["card"]["transport"]["legs"],
+): number | undefined {
+  if (legs.length === 0 || legs.every(({ segments }) => segments.length === 0)) {
+    return undefined;
+  }
+  return legs.reduce(
+    (total, { segments }) => total + Math.max(0, segments.length - 1),
+    0,
+  );
+}
+
+function hotelDetails(hotel: CardEvent["card"]["hotel"]): string {
+  const details: string[] = [];
+  if (hotel.stars !== undefined) details.push(`${hotel.stars} ★`);
+  if (hotel.rating !== undefined) {
+    details.push(`${formatRating(hotel.rating)} из 10`);
+  }
+  if (hotel.reviewCount !== undefined) {
+    details.push(
+      `${hotel.reviewCount} ${plural(hotel.reviewCount, "отзыв", "отзыва", "отзывов")}`,
+    );
+  }
+  return details.length > 0
+    ? details.join(" · ")
+    : "Категория и рейтинг уточняются";
+}
+
+function recommendationLabel(card: CardEvent["card"]): string {
+  if (card.hotel.rating !== undefined && card.hotel.rating >= 8) {
+    return `у жилья высокий рейтинг — ${formatRating(card.hotel.rating)} из 10.`;
+  }
+  if (card.hotel.stars !== undefined && card.hotel.stars >= 4) {
+    return `отель категории ${card.hotel.stars} ★.`;
+  }
+  if (transferCount(card.transport.legs) === 0) {
+    return "маршрут без пересадок.";
+  }
+  if (card.transport.durationMinutes <= 12 * 60) {
+    return "дорога занимает не больше 12 часов.";
+  }
+  return "дорога и жильё собраны в одну готовую поездку.";
+}
+
+function formatRating(value: number): string {
+  return new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 1 }).format(value);
 }
 
 function priceAgeLabel(ageMs: number, stale: boolean): string {
