@@ -1,6 +1,12 @@
 #!/usr/bin/env node
 
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -14,6 +20,7 @@ const VALIDATION_FILE = path.resolve(
 );
 const SNAPSHOT_DIRECTORY = path.resolve(PROJECT_ROOT, "data/snapshot");
 const SNAPSHOT_FILE = path.resolve(SNAPSHOT_DIRECTORY, "catalog.json");
+const WORK_FILE = `${SNAPSHOT_FILE}.partial`;
 const MCP_ENDPOINT = "https://mcp.tutu.ru/mcp";
 const DEFAULT_CONCURRENCY = 3;
 const MAX_CONCURRENCY = 6;
@@ -180,7 +187,22 @@ async function main() {
   output.run.status = output.run.failures.length === 0 ? "complete" : "incomplete";
   output.run.completedAt = new Date().toISOString();
   sortEntries(output.entries);
+
+  // Пустой результат почти всегда значит, что лежит источник, а не что
+  // направлений не стало. 11 августа MCP отдавал HTTP 503 страницей HTML, и
+  // прогон затёр бы рабочий снапшот нулём карточек. Держим прежний файл.
+  if (output.entries.length === 0) {
+    discardWorkFile();
+    console.error(
+      `Ни одной карточки собрать не удалось (${output.run.failures.length} ошибок). ` +
+        `Снапшот НЕ перезаписан — прежний файл сохранён.`,
+    );
+    process.exitCode = 1;
+    return;
+  }
+
   persistSnapshot(output);
+  commitSnapshot();
   console.log(
     `Готово: ${output.entries.length} карточек, ` +
       `${output.run.failures.length} ошибок. Файл: ` +
@@ -423,10 +445,28 @@ function recordFailure(output, destination, origin, error) {
   });
 }
 
+/**
+ * Промежуточный прогресс идёт в отдельный файл, а не в рабочий снапшот.
+ * Раньше запись велась прямо в catalog.json — включая пустую заготовку в самом
+ * начале, — поэтому упавший прогон оставлял ноль карточек вместо прежних данных.
+ */
 function persistSnapshot(output) {
-  const temporaryFile = `${SNAPSHOT_FILE}.tmp`;
+  const temporaryFile = `${WORK_FILE}.tmp`;
   writeFileSync(temporaryFile, `${JSON.stringify(output)}\n`);
-  renameSync(temporaryFile, SNAPSHOT_FILE);
+  renameSync(temporaryFile, WORK_FILE);
+}
+
+/** Заменяет рабочий снапшот собранным. Вызывается только при непустом результате. */
+function commitSnapshot() {
+  renameSync(WORK_FILE, SNAPSHOT_FILE);
+}
+
+function discardWorkFile() {
+  try {
+    unlinkSync(WORK_FILE);
+  } catch {
+    // Файла может не быть, если прогон упал до первой записи.
+  }
 }
 
 function sortEntries(entries) {
