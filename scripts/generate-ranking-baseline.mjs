@@ -2,7 +2,9 @@ import { readFileSync, writeFileSync } from "node:fs";
 
 import { createServer } from "vite";
 
-const SNAPSHOT_PATH = "data/snapshot/catalog.json";
+// Закреплённый снапшот, а не продуктовый: цифры отчёта сравнимы между прогонами
+// только на неизменном пуле карточек. Продуктовый пересобирается перед сдачей.
+const SNAPSHOT_PATH = "tests/fixtures/snapshot/baseline-catalog.json";
 const REPORT_PATH = "docs/ranking-baseline.md";
 const SESSION_PATHS = [
   "tests/fixtures/sessions/economy.json",

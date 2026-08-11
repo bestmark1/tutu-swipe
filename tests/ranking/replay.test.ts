@@ -2,7 +2,11 @@ import { readFileSync } from "node:fs";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import snapshotDocument from "../../data/snapshot/catalog.json";
+// Базовая линия считается на ЗАКРЕПЛЁННОМ снапшоте, а не на продуктовом.
+// Продуктовый пересобирается перед сдачей, и его карточки меняются; записанные
+// профили реакций ссылаются на конкретные идентификаторы, а метрики сравнимы
+// между прогонами только на неизменном пуле.
+import snapshotDocument from "../fixtures/snapshot/baseline-catalog.json";
 import comfortSessionDocument from "../fixtures/sessions/comfort.json";
 import economySessionDocument from "../fixtures/sessions/economy.json";
 import fastSessionDocument from "../fixtures/sessions/fast.json";
