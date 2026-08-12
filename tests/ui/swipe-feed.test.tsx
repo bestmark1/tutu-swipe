@@ -17,6 +17,7 @@ const SNAPSHOT_DATE_NOTICE =
 
 afterEach(() => {
   localStorage.clear();
+  vi.unstubAllGlobals();
 });
 
 function session(reactions: SessionReaction[] = []): SignedSessionState {
@@ -540,6 +541,41 @@ describe("swipe feed", () => {
       cardId: "snapshot-1",
       type: "like",
     });
+  });
+
+  it("HTTP deployment constraint: saves a reaction without crypto.randomUUID", async () => {
+    const getRandomValues = vi.fn(<T extends ArrayBufferView | null>(array: T) => {
+      if (array instanceof Uint8Array) {
+        array.set(Array.from({ length: array.length }, (_, index) => index));
+      }
+      return array;
+    });
+    vi.stubGlobal("crypto", { getRandomValues });
+    const client = sessionClient();
+
+    render(
+      <SwipeFeed
+        initialQuery="поездка"
+        initialSession={session()}
+        fetcher={vi.fn(async () =>
+          responseFor([
+            appendEvent("snapshot-1", "Сочи"),
+            appendEvent("snapshot-2", "Казань"),
+            doneEvent([card("Сочи"), card("Казань")]),
+          ]),
+        )}
+        sessionClient={client}
+        storageKey="reaction-without-random-uuid"
+      />,
+    );
+
+    await screen.findByRole("heading", { name: "Сочи" });
+    fireEvent.click(screen.getByRole("button", { name: "Нравится" }));
+
+    expect(await screen.findByRole("heading", { name: "Казань" })).toBeVisible();
+    expect(getRandomValues).toHaveBeenCalledOnce();
+    expect(client.addReaction).toHaveBeenCalledOnce();
+    expect(vi.mocked(client.addReaction).mock.calls[0][1].id).toBeTruthy();
   });
 
   it("AC22: undo restores the previous card, journal, and position", async () => {

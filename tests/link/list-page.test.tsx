@@ -134,4 +134,34 @@ describe("shared list page", () => {
       await screen.findByText(/Ссылка скопирована/iu),
     ).toBeVisible();
   });
+
+  it("HTTP deployment constraint: exposes the link when clipboard is unavailable", async () => {
+    window.history.replaceState(null, "", "/list#v1.payload.signature");
+    Object.defineProperty(window.navigator, "clipboard", {
+      value: undefined,
+      configurable: true,
+    });
+    const open = vi.fn<OpenSharedList>(async () => ({
+      status: "ready",
+      trips: [
+        {
+          destination: "Сочи",
+          hotelName: "Отель у моря",
+          totalAmount: 52_000,
+          currency: "RUB",
+          replaced: false,
+        },
+      ],
+    }));
+
+    render(<ListPageClient open={open} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Поделиться" }));
+
+    expect(await screen.findByText(/скопируйте её вручную/iu)).toBeVisible();
+    expect(screen.queryByText(/Ссылка скопирована/iu)).not.toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Ссылка на подборку" })).toHaveValue(
+      window.location.href,
+    );
+  });
 });

@@ -15,7 +15,7 @@ export interface ListPageClientProps {
   open?: OpenSharedList;
 }
 
-type ShareState = "idle" | "copied" | "failed";
+type ShareState = "idle" | "copied" | "manual";
 
 export function ListPageClient({
   open = openSharedList,
@@ -117,19 +117,28 @@ export function ListPageClient({
 
 function ShareButton() {
   const [state, setState] = useState<ShareState>("idle");
+  const [manualUrl, setManualUrl] = useState("");
 
   useEffect(() => {
-    if (state === "idle") return;
+    if (state !== "copied") return;
     const timeout = setTimeout(() => setState("idle"), 3000);
     return () => clearTimeout(timeout);
   }, [state]);
 
   async function share() {
+    const url = window.location.href;
+    if (!navigator.clipboard?.writeText) {
+      setManualUrl(url);
+      setState("manual");
+      return;
+    }
+
     try {
-      await navigator.clipboard.writeText(window.location.href);
+      await navigator.clipboard.writeText(url);
       setState("copied");
     } catch {
-      setState("failed");
+      setManualUrl(url);
+      setState("manual");
     }
   }
 
@@ -145,10 +154,20 @@ function ShareButton() {
       <p role="status" aria-live="polite" className="mt-2 min-h-5 text-sm text-ink-muted">
         {state === "copied"
           ? "Ссылка скопирована — отправьте её, с кем выбираете поездку."
-          : state === "failed"
-            ? "Не удалось скопировать: адрес подборки есть в строке браузера."
+          : state === "manual"
+            ? "Автоматически скопировать не удалось — выделите ссылку ниже и скопируйте её вручную."
             : "Внутри ссылки — сама подборка, без сессии и аккаунта."}
       </p>
+      {state === "manual" ? (
+        <input
+          type="text"
+          aria-label="Ссылка на подборку"
+          readOnly
+          value={manualUrl}
+          onFocus={(event) => event.currentTarget.select()}
+          className="mt-2 w-full rounded-md border border-divider bg-field px-3 py-2 text-sm text-ink"
+        />
+      ) : null}
     </div>
   );
 }
