@@ -24,6 +24,8 @@ import {
 
 const DEFAULT_CONCURRENCY = 4;
 const DEFAULT_TARGET_POOL_SIZE = 5;
+/** Сколько вариантов жилья показывать, когда город назван и он один. */
+const SINGLE_DESTINATION_HOTEL_VARIANTS = 5;
 
 export interface RateLimitedOutcome {
   status: "rate_limited";
@@ -82,7 +84,7 @@ export type FanOutSearchEvent =
 type SourceState = "available" | "indeterminate" | "unavailable";
 
 type CandidateResult =
-  | { status: "card"; card: SearchCard; sourceState: "available" }
+  | { status: "card"; cards: SearchCard[]; sourceState: "available" }
   | {
       status: "error";
       reason: CandidateErrorReason | "request_aborted";
@@ -110,6 +112,12 @@ export async function* fanOutSearch(
     options.targetPoolSize ?? DEFAULT_TARGET_POOL_SIZE,
     "targetPoolSize",
   );
+  // Направлений мало — значит человек назвал город, а не попросил подобрать.
+  // Тогда варианты нужны внутри города: одна и та же дорога, разное жильё.
+  const hotelVariantCount =
+    options.candidates.length === 1
+      ? SINGLE_DESTINATION_HOTEL_VARIANTS
+      : 1;
   const snapshot = loadSnapshot({ filePath: options.snapshotPath });
   const poolByDestination = new Map<string, FanOutSearchCard>();
   const snapshotEventIds = new Map<string, string>();
@@ -174,6 +182,7 @@ export async function* fanOutSearch(
         candidate.name,
         budget,
         requestSignal,
+        hotelVariantCount,
       )
         .catch(
           (): CandidateResult => ({
@@ -220,32 +229,49 @@ export async function* fanOutSearch(
 
       if (completed.result.status === "card") {
         const destinationKey = normalizeDestination(destination);
+        // Снапшотная карточка по городу одна, поэтому её заменяет только первый
+        // живой вариант. Остальные варианты того же города добавляются рядом и
+        // живут в пуле под собственными ключами.
         const replacesEventId = snapshotEventIds.get(destinationKey);
         const isNewDestination = replacesEventId === undefined;
-        const card: LiveSearchCard = {
-          ...completed.result.card,
-          source: "live",
-          ...(isNewDestination ? { isNewDestination: true } : {}),
-        };
-        poolByDestination.set(destinationKey, card);
-        liveCardCount += 1;
-        if (
-          liveCardCount >= targetPoolSize &&
-          (active.size > 0 || nextCandidateIndex < options.candidates.length)
-        ) {
-          stopReason = "pool_complete";
-          requestController.abort(new Error("target pool complete"));
+
+        for (const [variantIndex, source] of completed.result.cards.entries()) {
+          const isFirstVariant = variantIndex === 0;
+          const card: LiveSearchCard = {
+            ...source,
+            source: "live",
+            ...(isNewDestination && isFirstVariant
+              ? { isNewDestination: true }
+              : {}),
+          };
+          const poolKey = isFirstVariant
+            ? destinationKey
+            : `${destinationKey}#${variantIndex + 1}`;
+          poolByDestination.set(poolKey, card);
+          liveCardCount += 1;
+          if (
+            liveCardCount >= targetPoolSize &&
+            (active.size > 0 || nextCandidateIndex < options.candidates.length)
+          ) {
+            stopReason = "pool_complete";
+            requestController.abort(new Error("target pool complete"));
+          }
+          const replaces = isFirstVariant ? replacesEventId : undefined;
+          yield {
+            type: "card",
+            eventId: isFirstVariant
+              ? `card-${completed.index + 1}`
+              : `card-${completed.index + 1}-${variantIndex + 1}`,
+            destination,
+            card,
+            source: "live",
+            update: replaces ? "replace" : "append",
+            ...(replaces ? { replacesEventId: replaces } : {}),
+            ...(isNewDestination && isFirstVariant
+              ? { isNewDestination: true }
+              : {}),
+          };
         }
-        yield {
-          type: "card",
-          eventId: `card-${completed.index + 1}`,
-          destination,
-          card,
-          source: "live",
-          update: replacesEventId ? "replace" : "append",
-          ...(replacesEventId ? { replacesEventId } : {}),
-          ...(isNewDestination ? { isNewDestination: true } : {}),
-        };
       } else {
         yield {
           type: "candidate_error",
@@ -297,6 +323,7 @@ async function searchCandidate(
   destination: string,
   requestBudget: SearchBudget,
   signal: AbortSignal,
+  hotelVariantCount: number,
 ): Promise<CandidateResult> {
   const candidateStartedAt = performance.now();
   const candidateBudgetMs = requestBudget.candidateMs(candidateStartedAt);
@@ -341,7 +368,7 @@ async function searchCandidate(
         check_out: checkOut,
         adults: query.travellers.adults,
         children_ages: query.travellers.childrenAges,
-        page_size: 1,
+        page_size: hotelVariantCount,
         view: "compact",
       },
       signal,
@@ -382,18 +409,24 @@ async function searchCandidate(
     return { status: "error", reason: "invalid_response", sourceState };
   }
 
-  const built = buildTripCard(transportSearch, hotelSearch, {
-    adults: query.travellers.adults,
-  });
-  if (built.status !== "built") {
+  // Когда человек назвал город, направление одно, и свайпать было бы нечего:
+  // лента из единственной карточки. Поэтому по такому городу собираем несколько
+  // вариантов жилья на одной и той же — самой дешёвой — дороге.
+  const cards: SearchCard[] = [];
+  for (const hotel of hotelSearch.hotels.slice(0, hotelVariantCount)) {
+    const built = buildTripCard(
+      transportSearch,
+      { ...hotelSearch, hotels: [hotel] },
+      { adults: query.travellers.adults },
+    );
+    if (built.status !== "built") continue;
+    cards.push({ ...built.card, destination });
+  }
+  if (cards.length === 0) {
     return { status: "error", reason: "not_built", sourceState };
   }
 
-  return {
-    status: "card",
-    sourceState: "available",
-    card: { ...built.card, destination },
-  };
+  return { status: "card", sourceState: "available", cards };
 }
 
 async function callWithRetryAfter(
