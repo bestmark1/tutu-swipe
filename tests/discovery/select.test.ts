@@ -142,10 +142,7 @@ describe("offline destination selection", () => {
     }
   });
 
-  it("F25: puts a named destination first even when it is above budget", () => {
-    const withoutNamed = selectDestinations(
-      query({ budget: { ...query().budget, amount: 1_000 } }),
-    );
+  it("F25: названное направление показывается даже дороже бюджета", () => {
     const candidates = selectDestinations(
       query({
         budget: { ...query().budget, amount: 1_000 },
@@ -153,12 +150,38 @@ describe("offline destination selection", () => {
       }),
     );
 
-    expect(candidates).toHaveLength(withoutNamed.length);
     expect(candidates[0]).toMatchObject({
       name: "Горно-Алтайск",
       aboveBudget: true,
       isFallback: false,
     });
+  });
+
+  // Человек, назвавший город, выбор уже сделал. Прежде к названному Сочи
+  // подмешивались Туапсе и Ейск — формально похожие, но не то, о чём просили.
+  it("F25: названное направление не разбавляется подбором", () => {
+    const candidates = selectDestinations(
+      query({ namedDestinations: ["Сочи"] }),
+    );
+
+    expect(candidates.map(({ name }) => name)).toEqual(["Сочи"]);
+  });
+
+  it("F25: несколько названных направлений идут все и в своём порядке", () => {
+    const candidates = selectDestinations(
+      query({ namedDestinations: ["Иркутск", "Улан-Удэ"] }),
+    );
+
+    expect(candidates.map(({ name }) => name)).toEqual(["Иркутск", "Улан-Удэ"]);
+  });
+
+  it("F25: если названного нет в каталоге, работает обычный подбор", () => {
+    const candidates = selectDestinations(
+      query({ namedDestinations: ["Суздаль"] }),
+    );
+
+    expect(candidates.length).toBeGreaterThan(1);
+    expect(candidates.map(({ name }) => name)).not.toContain("Суздаль");
   });
 
   it("F25: preserves named order and removes duplicates from regular selection", () => {

@@ -84,14 +84,12 @@ export function selectDestinations(
     namedCandidates.push(toCandidate(candidate, false));
   }
 
-  const targetCount = Math.min(
-    MAX_CANDIDATES,
-    Math.max(regularSelection.length, namedCandidates.length),
-  );
-  const regularWithoutNamed = regularSelection.filter(
-    ({ name }) => !namedNames.has(normalizeCity(name)),
-  );
-  return [...namedCandidates, ...regularWithoutNamed].slice(0, targetCount);
+  // Человек назвал город — значит он выбрал, и подбор ему не нужен. Раньше к
+  // названному Сочи подмешивались Туапсе и Ейск: формально «похожие», а по сути
+  // не то, о чём просили. Показываем только названное; если ни одно название не
+  // нашлось в каталоге, возвращаемся к обычному подбору, иначе лента будет пуста.
+  if (namedCandidates.length > 0) return namedCandidates;
+  return regularSelection;
 }
 
 function selectScoredDestinations(
