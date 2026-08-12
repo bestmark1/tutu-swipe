@@ -12,6 +12,8 @@ import type {
 } from "@/lib/session";
 
 const encoder = new TextEncoder();
+const SNAPSHOT_DATE_NOTICE =
+  "Предварительный вариант на близкие даты — точный вариант на ваши даты уже загружается.";
 
 afterEach(() => {
   localStorage.clear();
@@ -203,6 +205,163 @@ describe("swipe feed", () => {
     expect(screen.getByRole("button", { name: "Не нравится" })).toHaveClass(
       "bg-field",
     );
+  });
+
+  it.each([
+    ["railway", "Поезд"],
+    ["avia", "Самолёт"],
+    ["bus", "Автобус"],
+    ["etrain", "Поезд"],
+    ["hovercraft", "Транспорт"],
+  ])("F24: labels the transport value %s in Russian", async (transport, label) => {
+    const offer = card("Сочи");
+    const event: SearchStreamEvent = {
+      type: "card",
+      eventId: `snapshot-${transport}`,
+      destination: "Сочи",
+      card: {
+        ...offer,
+        transport: { ...offer.transport, transport },
+      },
+      source: "snapshot",
+      update: "append",
+    };
+
+    render(
+      <SwipeFeed
+        initialQuery="поездка"
+        initialSession={session()}
+        fetcher={vi.fn(async () => responseFor([event, doneEvent()]))}
+        sessionClient={sessionClient()}
+        storageKey={`transport-${transport}`}
+      />,
+    );
+
+    await screen.findByRole("heading", { name: "Сочи" });
+    expect(screen.getByText(new RegExp(`^${label} ·`, "u"))).toBeVisible();
+  });
+
+  it("F24: does not present an unassigned hotel category as zero stars", async () => {
+    const offer = card("Сочи");
+    const event: SearchStreamEvent = {
+      type: "card",
+      eventId: "snapshot-zero-stars",
+      destination: "Сочи",
+      card: {
+        ...offer,
+        hotel: {
+          ...offer.hotel,
+          stars: 0,
+          rating: undefined,
+          reviewCount: undefined,
+        },
+      },
+      source: "snapshot",
+      update: "append",
+    };
+
+    render(
+      <SwipeFeed
+        initialQuery="поездка"
+        initialSession={session()}
+        fetcher={vi.fn(async () => responseFor([event, doneEvent()]))}
+        sessionClient={sessionClient()}
+        storageKey="zero-stars"
+      />,
+    );
+
+    await screen.findByRole("heading", { name: "Сочи" });
+    expect(screen.queryByText(/0 ★/u)).not.toBeInTheDocument();
+    expect(screen.getByText("Категория и рейтинг уточняются")).toBeVisible();
+    expect(screen.getByText(/маршрут без пересадок/u)).toBeVisible();
+  });
+
+  it("AC16: does not mark a snapshot whose dates match the query", async () => {
+    const queryEvent: SearchStreamEvent = {
+      type: "query",
+      eventId: "query",
+      query: {
+        origin: "Москва",
+        travellers: { adults: 2, childrenAges: [] },
+        dateWindow: { startDate: "2026-09-10", nights: 4 },
+        budget: {
+          amount: 80_000,
+          currency: "RUB",
+          scope: "group_trip_total",
+        },
+        vibeTags: [],
+      },
+      assumedFields: [],
+    };
+
+    render(
+      <SwipeFeed
+        initialQuery="из Москвы 10 сентября на 4 ночи"
+        initialSession={session()}
+        fetcher={vi.fn(async () =>
+          responseFor([
+            queryEvent,
+            appendEvent("snapshot-matching-dates", "Сочи"),
+            doneEvent(),
+          ]),
+        )}
+        sessionClient={sessionClient()}
+        storageKey="matching-snapshot-dates"
+      />,
+    );
+
+    await screen.findByRole("heading", { name: "Сочи" });
+    expect(screen.queryByText(SNAPSHOT_DATE_NOTICE)).not.toBeInTheDocument();
+  });
+
+  it("AC16: marks a snapshot on nearby dates while exact dates load", async () => {
+    const queryEvent: SearchStreamEvent = {
+      type: "query",
+      eventId: "query",
+      query: {
+        origin: "Санкт-Петербург",
+        travellers: { adults: 3, childrenAges: [] },
+        dateWindow: { startDate: "2026-09-16", nights: 7 },
+        budget: {
+          amount: 80_000,
+          currency: "RUB",
+          scope: "group_trip_total",
+        },
+        vibeTags: [],
+      },
+      assumedFields: [],
+    };
+    const offer = card("Казань");
+    const snapshotEvent: SearchStreamEvent = {
+      type: "card",
+      eventId: "snapshot-nearby-dates",
+      destination: "Казань",
+      card: {
+        ...offer,
+        stay: {
+          checkIn: "2026-09-15",
+          checkOut: "2026-09-19",
+          nights: 4,
+        },
+      },
+      source: "snapshot",
+      update: "append",
+    };
+
+    render(
+      <SwipeFeed
+        initialQuery="Из Санкт-Петербурга 16 сентября на 7 дней втроём в Казань"
+        initialSession={session()}
+        fetcher={vi.fn(async () =>
+          responseFor([queryEvent, snapshotEvent, doneEvent()]),
+        )}
+        sessionClient={sessionClient()}
+        storageKey="nearby-snapshot-dates"
+      />,
+    );
+
+    await screen.findByRole("heading", { name: "Казань" });
+    expect(screen.getByText(SNAPSHOT_DATE_NOTICE)).toBeVisible();
   });
 
   it("AC7a: replaces a snapshot card in place instead of appending a duplicate", async () => {
@@ -488,6 +647,42 @@ describe("swipe feed", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /1 взрослый/u }));
     expect(await screen.findByLabelText("Опишите поездку")).toBeVisible();
+  });
+
+  it("не падает, когда в сохранённом состоянии битая дата", async () => {
+    const queryEvent: SearchStreamEvent = {
+      type: "query",
+      eventId: "query",
+      query: {
+        origin: "Москва",
+        travellers: { adults: 2, childrenAges: [] },
+        dateWindow: { startDate: "не-дата", nights: 4 },
+        budget: {
+          amount: 80_000,
+          currency: "RUB",
+          scope: "group_trip_total",
+        },
+        vibeTags: [],
+      },
+      assumedFields: [],
+    };
+    render(
+      <SwipeFeed
+        initialQuery="из Москвы вдвоём в сентябре"
+        initialSession={session()}
+        fetcher={vi.fn(async () =>
+          responseFor([
+            queryEvent,
+            appendEvent("snapshot-1", "Сочи"),
+            doneEvent(),
+          ]),
+        )}
+        sessionClient={sessionClient()}
+        storageKey="broken-date"
+      />,
+    );
+
+    expect(await screen.findByRole("heading", { name: "Сочи" })).toBeVisible();
   });
 
   it("F25: предупреждает, когда названное направление дороже бюджета", async () => {

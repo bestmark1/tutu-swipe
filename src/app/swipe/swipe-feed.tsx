@@ -343,6 +343,7 @@ export function SwipeFeed({
               <TripCard
                 item={current}
                 budget={feed.parsedQuery?.budget}
+                dateWindow={feed.parsedQuery?.dateWindow}
                 disabled={reactionPending}
                 onPointerDown={pointerDown}
                 onPointerUp={pointerUp}
@@ -419,6 +420,7 @@ function SearchForm({
 function TripCard({
   item,
   budget,
+  dateWindow,
   disabled,
   onPointerDown,
   onPointerUp,
@@ -427,6 +429,7 @@ function TripCard({
 }: {
   item: FeedCard;
   budget: DiscoveryQuery["budget"] | undefined;
+  dateWindow: DiscoveryQuery["dateWindow"] | undefined;
   disabled: boolean;
   onPointerDown(event: ReactPointerEvent<HTMLElement>): void;
   onPointerUp(event: ReactPointerEvent<HTMLElement>): void;
@@ -435,6 +438,10 @@ function TripCard({
 }) {
   const { card } = item;
   const snapshot = card.source === "snapshot" ? card : undefined;
+  const snapshotHasNearbyDates =
+    snapshot !== undefined &&
+    dateWindow !== undefined &&
+    !stayMatchesDateWindow(card.stay, dateWindow);
   // Названное человеком направление показывается даже дороже лимита — но об
   // этом надо сказать. Сравниваем фактическую цену, а не ценовой класс:
   // класс отсеивает направления заранее и грубо, а превышает всегда итог.
@@ -532,7 +539,15 @@ function TripCard({
       ) : null}
 
       <p className="mt-4 text-xs leading-5 text-ink-muted">
-        {snapshot ? priceAgeLabel(snapshot.priceAgeMs, snapshot.priceIsStale) : "Цена обновлена сейчас"}. Цена могла измениться к моменту перехода на Туту.
+        {snapshot ? priceAgeLabel(snapshot.priceAgeMs, snapshot.priceIsStale) : "Цена обновлена сейчас"}.{" "}
+        {snapshotHasNearbyDates ? (
+          <>
+            <span>
+              Предварительный вариант на близкие даты — точный вариант на ваши даты уже загружается.
+            </span>{" "}
+          </>
+        ) : null}
+        Цена могла измениться к моменту перехода на Туту.
       </p>
 
       <div className="mt-6 grid grid-cols-2 gap-3">
@@ -986,10 +1001,17 @@ function durationLabel(minutes: number): string {
 }
 
 function transportLabel(value: string): string {
-  if (value === "train" || value === "rail" || value === "etrain") return "Поезд";
+  if (
+    value === "train" ||
+    value === "rail" ||
+    value === "railway" ||
+    value === "etrain"
+  ) {
+    return "Поезд";
+  }
   if (value === "plane" || value === "air" || value === "avia") return "Самолёт";
   if (value === "bus") return "Автобус";
-  return value;
+  return "Транспорт";
 }
 
 function transferLabel(
@@ -1015,7 +1037,9 @@ function transferCount(
 
 function hotelDetails(hotel: CardEvent["card"]["hotel"]): string {
   const details: string[] = [];
-  if (hotel.stars !== undefined) details.push(`${hotel.stars} ★`);
+  if (hotel.stars !== undefined && hotel.stars > 0) {
+    details.push(`${hotel.stars} ★`);
+  }
   if (hotel.rating !== undefined) {
     details.push(`${formatRating(hotel.rating)} из 10`);
   }
@@ -1056,4 +1080,22 @@ function priceAgeLabel(ageMs: number, stale: boolean): string {
       ? "Цена получена меньше часа назад"
       : `Цена получена ${hours} ${plural(hours, "час", "часа", "часов")} назад`;
   return stale ? `${age}, данные могут быть устаревшими` : age;
+}
+
+function stayMatchesDateWindow(
+  stay: CardEvent["card"]["stay"],
+  dateWindow: DiscoveryQuery["dateWindow"],
+): boolean {
+  if (!stay) return false;
+  const checkOut = new Date(`${dateWindow.startDate}T00:00:00.000Z`);
+  // Состояние ленты восстанавливается из localStorage, куда можно залезть
+  // руками. Невалидная дата уронила бы toISOString() и весь рендер карточки,
+  // поэтому считаем такое окно несовпадающим, а не падаем.
+  if (Number.isNaN(checkOut.getTime())) return false;
+  checkOut.setUTCDate(checkOut.getUTCDate() + dateWindow.nights);
+  return (
+    stay.checkIn === dateWindow.startDate &&
+    stay.checkOut === checkOut.toISOString().slice(0, 10) &&
+    stay.nights === dateWindow.nights
+  );
 }
