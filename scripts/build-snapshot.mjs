@@ -26,11 +26,13 @@ const DEFAULT_CONCURRENCY = 3;
 const MAX_CONCURRENCY = 6;
 const DEFAULT_TIMEOUT_MS = 20_000;
 const EXPECTED_ORIGIN_COUNT = 6;
+const SNAPSHOT_ADULTS = 2;
 
 export function projectSnapshotEntry({
   origin,
   destination,
   builtAt,
+  adults,
   transportPayload,
   hotelPayload,
 }) {
@@ -61,6 +63,7 @@ export function projectSnapshotEntry({
     origin: requiredString(origin, "origin"),
     destination: requiredString(destination, "destination"),
     builtAt: requiredIsoDate(builtAt, "builtAt"),
+    adults: requiredPositiveInteger(adults, "adults"),
     transport: compactTransport,
     hotel: compactHotel,
     stay,
@@ -120,7 +123,7 @@ async function main() {
               city_name: destination,
               check_in: window.checkIn,
               check_out: window.checkOut,
-              adults: 2,
+              adults: SNAPSHOT_ADULTS,
               children_ages: [],
               page: 1,
               page_size: 1,
@@ -142,7 +145,7 @@ async function main() {
                 origin,
                 destination,
                 departure_date: window.checkIn,
-                adults: 2,
+                adults: SNAPSHOT_ADULTS,
                 optimize_for: "price",
                 page: 1,
                 page_size: 1,
@@ -153,6 +156,7 @@ async function main() {
               origin,
               destination,
               builtAt: new Date().toISOString(),
+              adults: SNAPSHOT_ADULTS,
               transportPayload,
               hotelPayload,
             });
@@ -553,6 +557,14 @@ function requiredNumber(value, label) {
     throw new TypeError(`${label} must be a finite number`);
   }
   return value;
+}
+
+function requiredPositiveInteger(value, label) {
+  const number = requiredNumber(value, label);
+  if (!Number.isInteger(number) || number < 1) {
+    throw new TypeError(`${label} must be a positive integer`);
+  }
+  return number;
 }
 
 function optionalNumber(value) {

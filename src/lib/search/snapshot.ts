@@ -95,9 +95,11 @@ function parseEntry(
   const transport = parseTransport(entry.transport);
   const hotel = parseHotel(entry.hotel);
   const stay = parseStay(entry.stay);
+  const adults = snapshotAdults(entry.adults);
   const built = buildTripCard(
     { variants: [transport] },
     { hotels: [hotel], stay },
+    { adults },
   );
   if (built.status !== "built") {
     throw new TypeError(`snapshot card cannot be built: ${built.reason}`);
@@ -228,6 +230,17 @@ function parseMoney(
     amount: requiredNumber(money.amount, `${label}.amount`),
     currency: requiredString(money.currency, `${label}.currency`),
   };
+}
+
+function snapshotAdults(value: unknown): number {
+  // Schema v1 snapshots before 2026-08-12 omitted this field but were built
+  // with adults: 2 in scripts/build-snapshot.mjs.
+  if (value === undefined) return 2;
+  const adults = requiredNumber(value, "adults");
+  if (!Number.isInteger(adults) || adults < 1) {
+    throw new TypeError("adults must be a positive integer");
+  }
+  return adults;
 }
 
 function emptyIndex(): SnapshotIndex {

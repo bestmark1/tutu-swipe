@@ -59,6 +59,78 @@ function priceForAmounts(
 }
 
 describe("trip card package", () => {
+  it.each([
+    [1, 4955.58, undefined],
+    [2, 9911.16, { adults: 2, pricePerAdult: 4955.58 }],
+    [3, 14866.74, { adults: 3, pricePerAdult: 4955.58 }],
+  ])(
+    "prices a railway offer for %i adult(s)",
+    (adults, expectedAmount, expectedComposition) => {
+      const { transport, hotel } = fixtureSearches();
+
+      const result = buildTripCard(transport, hotel, { adults });
+
+      expect(result.status).toBe("built");
+      if (result.status !== "built") throw new Error("Expected a trip card");
+      expect(result.card.price.breakdown.transport.amount).toBe(expectedAmount);
+      expect(result.card.price.breakdown.transport.adultPriceComposition).toEqual(
+        expectedComposition,
+      );
+      expect(result.card.price.total.amount).toBe(expectedAmount + 22400);
+    },
+  );
+
+  it.each(["avia", "bus"])(
+    "does not multiply an already group-priced %s offer",
+    (mode) => {
+      const { transport, hotel } = fixtureSearches();
+      const prices = [1, 2, 3].map((adults) => {
+        const result = buildTripCard(
+          {
+            ...transport,
+            variants: [
+              { ...transport.variants[0], transport: mode },
+              ...transport.variants.slice(1),
+            ],
+          },
+          hotel,
+          { adults },
+        );
+        if (result.status !== "built") throw new Error("Expected a trip card");
+        return result.card.price.breakdown.transport;
+      });
+
+      expect(prices.map(({ amount }) => amount)).toEqual([
+        4955.58, 4955.58, 4955.58,
+      ]);
+      expect(prices.every(({ adultPriceComposition }) =>
+        adultPriceComposition === undefined,
+      )).toBe(true);
+    },
+  );
+
+  it("prices an etrain offer per adult like railway", () => {
+    const { transport, hotel } = fixtureSearches();
+    const result = buildTripCard(
+      {
+        ...transport,
+        variants: [
+          { ...transport.variants[0], transport: "etrain" },
+          ...transport.variants.slice(1),
+        ],
+      },
+      hotel,
+      { adults: 3 },
+    );
+
+    expect(result.status).toBe("built");
+    if (result.status !== "built") throw new Error("Expected a trip card");
+    expect(result.card.price.breakdown.transport).toMatchObject({
+      amount: 14866.74,
+      adultPriceComposition: { adults: 3, pricePerAdult: 4955.58 },
+    });
+  });
+
   it("adds 0.1 and 0.2 RUB without a floating-point residue", () => {
     expect(priceForAmounts(0.1, 0.2).total.amount).toBe(0.3);
   });

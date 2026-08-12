@@ -382,7 +382,9 @@ async function searchCandidate(
     return { status: "error", reason: "invalid_response", sourceState };
   }
 
-  const built = buildTripCard(transportSearch, hotelSearch);
+  const built = buildTripCard(transportSearch, hotelSearch, {
+    adults: query.travellers.adults,
+  });
   if (built.status !== "built") {
     return { status: "error", reason: "not_built", sourceState };
   }

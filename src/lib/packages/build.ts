@@ -4,6 +4,7 @@ export interface MoneyInput {
 }
 
 export interface TransportOfferInput {
+  transport: string;
   price: MoneyInput;
   legs?: readonly { label?: string }[];
   departureAt?: string;
@@ -48,6 +49,13 @@ export interface PriceComponent extends MoneyInput {
   label: string;
 }
 
+export interface TransportPriceComponent extends PriceComponent {
+  adultPriceComposition?: {
+    adults: number;
+    pricePerAdult: number;
+  };
+}
+
 export interface AccommodationPriceComponent extends PriceComponent {
   priceBasis: "stay_total";
 }
@@ -55,7 +63,7 @@ export interface AccommodationPriceComponent extends PriceComponent {
 export interface TripCardPrice {
   total: MoneyInput & { computed: true };
   breakdown: {
-    transport: PriceComponent;
+    transport: TransportPriceComponent;
     accommodation: AccommodationPriceComponent;
   };
 }
@@ -116,12 +124,17 @@ export type BuildTripCardResult<
       currencies: { transport: string; accommodation: string };
     };
 
+export interface BuildTripCardOptions {
+  adults: number;
+}
+
 export function buildTripCard<
   TTransport extends TransportOfferInput,
   THotel extends HotelOfferInput,
 >(
   transportSearch: TransportSearchInput<TTransport>,
   hotelSearch: HotelSearchInput<THotel>,
+  options: BuildTripCardOptions = { adults: 1 },
 ): BuildTripCardResult<TTransport, THotel> {
   const transport = transportSearch.variants[0];
   if (!transport) {
@@ -155,6 +168,11 @@ export function buildTripCard<
     };
   }
 
+  const transportPrice = compensateTutuRailPerSeatPriceForAdults(
+    transport,
+    options.adults,
+  );
+
   return {
     status: "built",
     card: {
@@ -166,7 +184,7 @@ export function buildTripCard<
       price: {
         total: {
           amount: addPriceAmounts(
-            transport.price.amount,
+            transportPrice.amount,
             accommodation.price.amount,
           ),
           currency: transportCurrency,
@@ -175,6 +193,7 @@ export function buildTripCard<
         breakdown: {
           transport: {
             ...transport.price,
+            ...transportPrice,
             label: transportLabel(transport),
           },
           accommodation: {
@@ -184,6 +203,34 @@ export function buildTripCard<
           },
         },
       },
+    },
+  };
+}
+
+/**
+ * Compatibility compensation for Tutu MCP server 0.32.0, measured 2026-08-12:
+ * `railway` and `etrain` expose `fares.price_from` for one seat even when the
+ * request has multiple adults, while `avia` and `bus` already price the group.
+ * Recheck with identical `search_multitransport` calls for 1 and 3 adults and
+ * compare `variants[].price` plus `fares.price_from`; remove this multiplication
+ * once rail prices scale with `adults` on the server.
+ */
+function compensateTutuRailPerSeatPriceForAdults(
+  transport: TransportOfferInput,
+  adults: number,
+): Pick<TransportPriceComponent, "amount" | "adultPriceComposition"> {
+  if (
+    adults <= 1 ||
+    (transport.transport !== "railway" && transport.transport !== "etrain")
+  ) {
+    return { amount: transport.price.amount };
+  }
+
+  return {
+    amount: multiplyPriceAmount(transport.price.amount, adults),
+    adultPriceComposition: {
+      adults,
+      pricePerAdult: transport.price.amount,
     },
   };
 }
@@ -262,6 +309,11 @@ function addPriceAmounts(first: number, second: number): number {
       Math.round(second * minorUnitsPerUnit)) /
     minorUnitsPerUnit
   );
+}
+
+function multiplyPriceAmount(amount: number, multiplier: number): number {
+  const minorUnitsPerUnit = 100;
+  return (Math.round(amount * minorUnitsPerUnit) * multiplier) / minorUnitsPerUnit;
 }
 
 function transportLabel(transport: TransportOfferInput): string {

@@ -208,6 +208,48 @@ describe("swipe feed", () => {
     );
   });
 
+  it("AC12: shows the per-adult railway price composition", async () => {
+    const offer = card("Сочи", 47_274);
+    const event: SearchStreamEvent = {
+      type: "card",
+      eventId: "railway-price-composition",
+      destination: "Сочи",
+      card: {
+        ...offer,
+        price: {
+          ...offer.price,
+          breakdown: {
+            ...offer.price.breakdown,
+            transport: {
+              amount: 17_274,
+              currency: "RUB",
+              label: "Дорога",
+              adultPriceComposition: {
+                adults: 3,
+                pricePerAdult: 5_758,
+              },
+            },
+          },
+        },
+      },
+      source: "snapshot",
+      update: "append",
+    };
+
+    render(
+      <SwipeFeed
+        initialQuery="в Сочи втроём"
+        initialSession={session()}
+        fetcher={vi.fn(async () => responseFor([event, doneEvent()]))}
+        sessionClient={sessionClient()}
+        storageKey="railway-price-composition"
+      />,
+    );
+
+    await screen.findByRole("heading", { name: "Сочи" });
+    expect(screen.getByText("3 × 5 758 ₽")).toBeVisible();
+  });
+
   it.each([
     ["railway", "Поезд"],
     ["avia", "Самолёт"],

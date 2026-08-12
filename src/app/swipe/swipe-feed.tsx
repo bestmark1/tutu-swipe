@@ -575,12 +575,27 @@ function TripCard({
 function PriceRow({
   component,
 }: {
-  component: { label: string; amount: number; currency: string };
+  component: {
+    label: string;
+    amount: number;
+    currency: string;
+    adultPriceComposition?: { adults: number; pricePerAdult: number };
+  };
 }) {
+  const composition = component.adultPriceComposition;
   return (
     <div className="flex justify-between gap-3 text-ink-on-dark/80">
       <dt>{component.label}</dt>
-      <dd>{formatMoney(component.amount, component.currency)}</dd>
+      {/* Сумма остаётся главной: именно она входит в итог поездки. Состав
+          показывается рядом мельче, чтобы было видно, откуда она взялась. */}
+      <dd className="text-right">
+        {formatMoney(component.amount, component.currency)}
+        {composition ? (
+          <span className="block text-xs text-ink-on-dark/60">
+            {composition.adults} × {formatMoney(composition.pricePerAdult, component.currency)}
+          </span>
+        ) : null}
+      </dd>
     </div>
   );
 }

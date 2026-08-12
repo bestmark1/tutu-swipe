@@ -79,6 +79,7 @@ describe("snapshot search", () => {
       origin: "Москва",
       destination: "Сочи",
       builtAt: "2026-08-05T10:00:00.000Z",
+      adults: 2,
       transportPayload: {
         variants: [
           {
@@ -101,6 +102,7 @@ describe("snapshot search", () => {
     });
 
     expect(entry).toMatchObject({
+      adults: 2,
       transport: {
         search_results_url: "https://www.tutu.ru/snapshot-search",
       },
@@ -127,6 +129,15 @@ describe("snapshot search", () => {
       priceIsStale: false,
       transport: {
         searchResultsUrl: "https://www.tutu.ru/snapshot-search",
+      },
+      price: {
+        total: { amount: 30_000 },
+        breakdown: {
+          transport: {
+            amount: 10_000,
+            adultPriceComposition: { adults: 2, pricePerAdult: 5_000 },
+          },
+        },
       },
     });
   });
