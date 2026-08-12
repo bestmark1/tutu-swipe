@@ -26,6 +26,12 @@ export interface SearchStreamQueryEvent {
   eventId: string;
   query: DiscoveryQuery;
   assumedFields: DiscoveryRequiredField[];
+  /**
+   * Направления, названные во фразе, но недоступные для подбора: их нет в
+   * каталоге либо MCP не собирает до них маршрут. Показываются человеку,
+   * чтобы он видел, что его слово услышано, а не потерялось.
+   */
+  unknownDestinations?: string[];
 }
 
 export type SearchStreamEvent =
@@ -39,6 +45,7 @@ export type SearchStreamPreparation =
       status: "ready";
       query: DiscoveryQuery;
       assumedFields: DiscoveryRequiredField[];
+      unknownDestinations?: string[];
       events: AsyncGenerator<FanOutSearchEvent>;
     };
 
@@ -62,6 +69,9 @@ export async function prepareSearchStream(
     status: "ready",
     query: parsed.query,
     assumedFields: parsed.assumedFields,
+    ...(parsed.unknownDestinations && parsed.unknownDestinations.length > 0
+      ? { unknownDestinations: parsed.unknownDestinations }
+      : {}),
     events: fanOutSearch({
       ...options.fanOut,
       candidates: selectDestinations(parsed.query),

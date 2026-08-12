@@ -7,6 +7,19 @@ const TODAY = new Date("2026-08-05T12:00:00.000Z");
 const COMPLETE_QUERY =
   "на море в сентябре вдвоём из Москвы до 60к, чтобы не шумно";
 
+async function parseNamedDestinations(destination: string) {
+  const result = await parseTravelQuery(
+    `из Москвы ${destination}, в сентябре вдвоём до 60к`,
+    { today: TODAY },
+  );
+
+  expect(result.status).toBe("success");
+  if (result.status !== "success") {
+    throw new Error("Expected a successful parse");
+  }
+  return result;
+}
+
 describe("rule-based discovery query parsing", () => {
   it("AC1: parses a complete phrase without calling the fallback", async () => {
     const fallback: DiscoveryFallbackParser = {
@@ -427,5 +440,211 @@ describe("rule-based discovery query parsing", () => {
     expect(result.source).toBe("rules+fallback");
     expect(result.query.origin).toBe("Москва");
     expect(result.query.vibeTags).toEqual(["culture"]);
+  });
+
+  it.each([
+    ["алтай", ["Горно-Алтайск"]],
+    ["байкал", ["Иркутск", "Улан-Удэ"]],
+    ["карелия", ["Петрозаводск", "Сортавала"]],
+    ["ладога", ["Сортавала"]],
+    ["ладожское", ["Сортавала"]],
+    ["онега", ["Петрозаводск"]],
+    ["онежское", ["Петрозаводск"]],
+    ["кавказ", ["Пятигорск", "Кисловодск", "Нальчик", "Владикавказ"]],
+    ["кавминводы", ["Пятигорск", "Кисловодск", "Ессентуки", "Железноводск"]],
+    ["кмв", ["Пятигорск", "Кисловодск", "Ессентуки", "Железноводск"]],
+    ["минводы", ["Пятигорск", "Кисловодск", "Ессентуки", "Железноводск"]],
+    ["минеральные воды", ["Пятигорск", "Кисловодск", "Ессентуки", "Железноводск"]],
+    // Суздаль есть в справочнике, но каталог его отбрасывает: MCP не собирает
+    // до него маршрут. Ожидаем то, что реально достижимо.
+    ["золотое кольцо", ["Владимир", "Ярославль", "Кострома"]],
+    ["дагестан", ["Махачкала", "Дербент"]],
+    ["адыгея", ["Майкоп"]],
+    ["осетия", ["Владикавказ"]],
+    ["северная осетия", ["Владикавказ"]],
+    ["алания", ["Владикавказ"]],
+    ["кабардино-балкария", ["Нальчик"]],
+    ["кбр", ["Нальчик"]],
+    ["татарстан", ["Казань"]],
+    ["бурятия", ["Улан-Удэ"]],
+    ["приморье", ["Владивосток"]],
+    ["приморский край", ["Владивосток"]],
+    ["хибины", ["Мурманск"]],
+    ["териберка", ["Мурманск"]],
+    ["кольский", ["Мурманск"]],
+    ["заполярье", ["Мурманск"]],
+    ["красная поляна", ["Сочи"]],
+    ["роза хутор", ["Сочи"]],
+    ["сириус", ["Сочи"]],
+    ["адлер", ["Сочи"]],
+    ["беларусь", ["Минск", "Брест", "Гродно"]],
+    ["белоруссия", ["Минск", "Брест", "Гродно"]],
+    ["казахстан", ["Алматы", "Астана"]],
+    ["узбекистан", ["Ташкент", "Самарканд"]],
+    ["грузия", ["Тбилиси"]],
+    ["армения", ["Ереван"]],
+    ["азербайджан", ["Баку"]],
+    ["киргизия", ["Бишкек"]],
+    ["кыргызстан", ["Бишкек"]],
+  ])("F25: maps catalog destination synonym %s", async (alias, expected) => {
+    const result = await parseNamedDestinations(`на ${alias}`);
+
+    expect(result.query.namedDestinations).toEqual(expected);
+  });
+
+  it.each([
+    ["на Алтай", ["Горно-Алтайск"]],
+    ["на Алтае", ["Горно-Алтайск"]],
+    ["в Казань", ["Казань"]],
+    ["в Казани", ["Казань"]],
+    ["в Сочи", ["Сочи"]],
+    ["в Санкт-Петербург", ["Санкт-Петербург"]],
+    ["в Питере", ["Санкт-Петербург"]],
+    ["на Байкал", ["Иркутск", "Улан-Удэ"]],
+    ["на Байкале", ["Иркутск", "Улан-Удэ"]],
+    ["в Карелию", ["Петрозаводск", "Сортавала"]],
+    ["в Карелии", ["Петрозаводск", "Сортавала"]],
+  ])("F25: recognizes inflected destination %s", async (phrase, expected) => {
+    const result = await parseNamedDestinations(phrase);
+
+    expect(result.query.namedDestinations).toEqual(expected);
+  });
+
+  it.each([
+    ["Из Москвы в Казань", "Москва", ["Казань"]],
+    ["Из Казани в Москву", "Казань", ["Москва"]],
+    ["Из Москвы на море", "Москва", undefined],
+    ["Из Санкт-Петербурга в Сочи", "Санкт-Петербург", ["Сочи"]],
+  ])(
+    "F25: separates origin and destination in %s",
+    async (phrase, origin, namedDestinations) => {
+      const result = await parseTravelQuery(phrase, { today: TODAY });
+
+      expect(result.status).toBe("success");
+      if (result.status !== "success") {
+        throw new Error("Expected a successful parse");
+      }
+      expect(result.query.origin).toBe(origin);
+      expect(result.query.namedDestinations).toEqual(namedDestinations);
+    },
+  );
+
+  it("F25: preserves mention order and region priority without duplicates", async () => {
+    const result = await parseNamedDestinations(
+      "на Алтай или Байкал, потом в Иркутск",
+    );
+
+    expect(result.query.namedDestinations).toEqual([
+      "Горно-Алтайск",
+      "Иркутск",
+      "Улан-Удэ",
+    ]);
+  });
+
+  it.each([
+    ["питер", "Санкт-Петербург"],
+    ["спб", "Санкт-Петербург"],
+    ["петербург", "Санкт-Петербург"],
+    ["санкт петербург", "Санкт-Петербург"],
+    ["мск", "Москва"],
+    ["нижний", "Нижний Новгород"],
+    ["новосиб", "Новосибирск"],
+    ["екб", "Екатеринбург"],
+    ["ебург", "Екатеринбург"],
+    ["екат", "Екатеринбург"],
+  ])("F25: recognizes conversational city name %s", async (alias, expected) => {
+    // Отправление из Казани, а не из Москвы: город отправления намеренно
+    // исключается из названных направлений, и «из Москвы в мск» дал бы пусто.
+    const result = await parseTravelQuery(
+      `из Казани в ${alias}, в сентябре вдвоём до 60к`,
+      { today: TODAY },
+    );
+
+    expect(result.status).toBe("success");
+    if (result.status !== "success") throw new Error("Expected a successful parse");
+    expect(result.query.namedDestinations).toEqual([expected]);
+  });
+
+  it.each([
+    ["в Париж", "Париж"],
+    ["в Крым", "Крым"],
+    ["в Абхазию", "Абхазия"],
+    ["на Камчатку", "Камчатка"],
+    ["в Домбай", "Домбай"],
+    ["в Архыз", "Архыз"],
+    ["на Эльбрус", "Эльбрус"],
+    ["на Байконур", "Байконур"],
+    ["в Ростов", "Ростов"],
+  ])("F25: reports unsupported destination %s", async (phrase, expected) => {
+    const result = await parseTravelQuery(
+      `из Москвы ${phrase}, в сентябре вдвоём до 60к`,
+      { today: TODAY },
+    );
+
+    expect(result.status).toBe("success");
+    if (result.status !== "success") {
+      throw new Error("Expected a successful parse");
+    }
+    expect(result.unknownDestinations).toEqual([expected]);
+    expect(result.query.namedDestinations).toBeUndefined();
+  });
+
+  // Разговорные названия должны работать и как город отправления. Раньше
+  // «из Екб в Казань» просило уточнить откуда: направления такие формы знали,
+  // а словарь отправления — нет.
+  it.each([
+    ["из Екб в Казань", "Екатеринбург", "Казань"],
+    ["из Мск в Питер", "Москва", "Санкт-Петербург"],
+    ["из Новосиба на Алтай", "Новосибирск", "Горно-Алтайск"],
+    ["из Нижнего в Сочи", "Нижний Новгород", "Сочи"],
+    ["из Нижнего Новгорода в Сочи", "Нижний Новгород", "Сочи"],
+  ])("F25: %s понимается и как откуда, и как куда", async (phrase, origin, destination) => {
+    const result = await parseTravelQuery(
+      `${phrase} вдвоём в сентябре до 60к`,
+      { today: TODAY },
+    );
+
+    expect(result.status).toBe("success");
+    if (result.status !== "success") {
+      throw new Error("Expected a successful parse");
+    }
+    expect(result.query.origin).toBe(origin);
+    expect(result.query.namedDestinations).toEqual([destination]);
+  });
+
+  // Известные направления, до которых MCP не собирает маршрут: каталог их
+  // отбрасывает. Раньше такая фраза молча превращалась в обычный подбор,
+  // и человек не понимал, куда делась его Куршская коса.
+  it.each([
+    ["на Куршскую косу", "Зеленоградск"],
+    ["в Суздаль", "Суздаль"],
+    ["в Ейск", "Ейск"],
+    ["в Светлогорск", "Светлогорск"],
+  ])("F25: reports unreachable catalog destination %s", async (phrase, expected) => {
+    const result = await parseTravelQuery(
+      `из Москвы ${phrase}, в сентябре вдвоём до 60к`,
+      { today: TODAY },
+    );
+
+    expect(result.status).toBe("success");
+    if (result.status !== "success") {
+      throw new Error("Expected a successful parse");
+    }
+    expect(result.unknownDestinations).toContain(expected);
+    expect(result.query.namedDestinations ?? []).not.toContain(expected);
+  });
+
+  it("F25: сообщает о недостижимом, но продолжает подбирать остальное", async () => {
+    const result = await parseTravelQuery(
+      "из Москвы на Куршскую косу, в сентябре вдвоём до 60к",
+      { today: TODAY },
+    );
+
+    expect(result.status).toBe("success");
+    if (result.status !== "success") {
+      throw new Error("Expected a successful parse");
+    }
+    expect(result.unknownDestinations).toEqual(["Зеленоградск"]);
+    expect(result.query.origin).toBe("Москва");
   });
 });

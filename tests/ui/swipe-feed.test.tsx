@@ -105,12 +105,13 @@ function card(destination: string, amount = 50_000) {
 function appendEvent(
   eventId: string,
   destination: string,
+  amount?: number,
 ): SearchStreamEvent {
   return {
     type: "card",
     eventId,
     destination,
-    card: card(destination),
+    card: amount === undefined ? card(destination) : card(destination, amount),
     source: "snapshot",
     update: "append",
   };
@@ -487,6 +488,84 @@ describe("swipe feed", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /1 взрослый/u }));
     expect(await screen.findByLabelText("Опишите поездку")).toBeVisible();
+  });
+
+  it("F25: предупреждает, когда названное направление дороже бюджета", async () => {
+    const queryEvent: SearchStreamEvent = {
+      type: "query",
+      eventId: "query",
+      query: {
+        origin: "Москва",
+        travellers: { adults: 3, childrenAges: [] },
+        dateWindow: { startDate: "2026-10-01", nights: 4 },
+        budget: {
+          amount: 30_000,
+          currency: "RUB",
+          scope: "group_trip_total",
+        },
+        vibeTags: [],
+        namedDestinations: ["Горно-Алтайск"],
+      },
+      assumedFields: [],
+    };
+    render(
+      <SwipeFeed
+        initialQuery="из Москвы втроём на Алтай в октябре до 30 000"
+        initialSession={session()}
+        fetcher={vi.fn(async () =>
+          responseFor([
+            queryEvent,
+            appendEvent("snapshot-1", "Горно-Алтайск", 51_299),
+            doneEvent(),
+          ]),
+        )}
+        sessionClient={sessionClient()}
+        storageKey="over-budget"
+      />,
+    );
+
+    await screen.findByRole("heading", { name: "Горно-Алтайск" });
+    expect(screen.getByText(/Дороже вашего бюджета/u)).toBeVisible();
+  });
+
+  it("F25: сообщает о названном направлении, которое подобрать нельзя", async () => {
+    const queryEvent: SearchStreamEvent = {
+      type: "query",
+      eventId: "query",
+      query: {
+        origin: "Москва",
+        travellers: { adults: 2, childrenAges: [] },
+        dateWindow: { startDate: "2026-09-10", nights: 4 },
+        budget: {
+          amount: 80_000,
+          currency: "RUB",
+          scope: "group_trip_total",
+        },
+        vibeTags: [],
+      },
+      assumedFields: [],
+      unknownDestinations: ["Крым"],
+    };
+    render(
+      <SwipeFeed
+        initialQuery="из Москвы в Крым вдвоём в сентябре"
+        initialSession={session()}
+        fetcher={vi.fn(async () =>
+          responseFor([
+            queryEvent,
+            appendEvent("snapshot-1", "Сочи"),
+            doneEvent(),
+          ]),
+        )}
+        sessionClient={sessionClient()}
+        storageKey="unknown-destination"
+      />,
+    );
+
+    await screen.findByRole("heading", { name: "Сочи" });
+    expect(
+      screen.getByText(/Крым мы пока не подбираем/u),
+    ).toBeVisible();
   });
 
   it("F23: no assumed chips when everything came from the phrase", async () => {

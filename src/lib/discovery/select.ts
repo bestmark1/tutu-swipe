@@ -66,6 +66,39 @@ export function selectDestinations(
         normalizeCity(destination.name) !== normalizeCity(query.origin),
     );
 
+  const regularSelection = selectScoredDestinations(scored, query);
+  if (!query.namedDestinations || query.namedDestinations.length === 0) {
+    return regularSelection;
+  }
+
+  const scoredByName = new Map(
+    scored.map((candidate) => [normalizeCity(candidate.destination.name), candidate]),
+  );
+  const namedCandidates: DestinationCandidate[] = [];
+  const namedNames = new Set<string>();
+  for (const name of query.namedDestinations) {
+    const normalizedName = normalizeCity(name);
+    const candidate = scoredByName.get(normalizedName);
+    if (!candidate || namedNames.has(normalizedName)) continue;
+    namedNames.add(normalizedName);
+    namedCandidates.push(toCandidate(candidate, false));
+  }
+
+  const targetCount = Math.min(
+    MAX_CANDIDATES,
+    Math.max(regularSelection.length, namedCandidates.length),
+  );
+  const regularWithoutNamed = regularSelection.filter(
+    ({ name }) => !namedNames.has(normalizeCity(name)),
+  );
+  return [...namedCandidates, ...regularWithoutNamed].slice(0, targetCount);
+}
+
+function selectScoredDestinations(
+  scored: ScoredDestination[],
+  query: DiscoveryQuery,
+): DestinationCandidate[] {
+
   const affordable = scored.filter(({ aboveBudget }) => !aboveBudget);
   const noneAffordable = affordable.length === 0;
   const pool = affordable.length >= MIN_CANDIDATES ? affordable : scored;

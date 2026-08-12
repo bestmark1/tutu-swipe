@@ -40,8 +40,11 @@ export interface CityDictionaryEntry {
 
 // This is a phrase-recognition dictionary, not a list of valid Tutu cities.
 // Live MCP search remains the source of truth for geo resolution.
+// Разговорные формы (мск, спб, екб, новосиб) нужны и здесь, а не только в
+// разборе направлений: без них фраза «из Екб в Казань» просила уточнить город
+// отправления, хотя человек его назвал.
 export const ORIGIN_CITIES: readonly CityDictionaryEntry[] = [
-  { name: "Москва", aliases: ["москва", "москвы", "москве"] },
+  { name: "Москва", aliases: ["москва", "москвы", "москве", "мск"] },
   {
     name: "Санкт-Петербург",
     aliases: [
@@ -52,16 +55,24 @@ export const ORIGIN_CITIES: readonly CityDictionaryEntry[] = [
       "петербурга",
       "питер",
       "питера",
+      "спб",
     ],
   },
   { name: "Казань", aliases: ["казань", "казани"] },
   {
     name: "Екатеринбург",
-    aliases: ["екатеринбург", "екатеринбурга", "екатеринбурге"],
+    aliases: [
+      "екатеринбург",
+      "екатеринбурга",
+      "екатеринбурге",
+      "екб",
+      "ебург",
+      "екат",
+    ],
   },
   {
     name: "Новосибирск",
-    aliases: ["новосибирск", "новосибирска", "новосибирске"],
+    aliases: ["новосибирск", "новосибирска", "новосибирске", "новосиб", "новосиба", "новосибе"],
   },
   {
     name: "Нижний Новгород",
@@ -69,6 +80,9 @@ export const ORIGIN_CITIES: readonly CityDictionaryEntry[] = [
       "нижний новгород",
       "нижнего новгорода",
       "нижнем новгороде",
+      "нижний",
+      "нижнем",
+      "нижнего",
     ],
   },
   { name: "Самара", aliases: ["самара", "самары", "самаре"] },

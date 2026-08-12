@@ -206,6 +206,14 @@ export const catalogValidation = loadCatalogValidation();
 export const destinationCatalog: readonly Destination[] =
   applyCatalogValidation(rawCatalog, catalogValidation.report);
 
+/**
+ * Справочник ДО отсева недостижимых. Нужен только разбору запроса: названное
+ * человеком направление надо узнать, даже если предложить его нельзя, — иначе
+ * «в Суздаль» молча превратится в подбор чего-то другого. Для отбора и выдачи
+ * пользуйтесь destinationCatalog.
+ */
+export const fullDestinationCatalog: readonly Destination[] = rawCatalog;
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }

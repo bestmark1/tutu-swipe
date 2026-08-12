@@ -67,13 +67,20 @@ async function streamSearch(
     return Response.json(prepared, { status: 422 });
   }
 
+  // Событие нужно и когда подставлены умолчания, и когда названное человеком
+  // направление подобрать нельзя: молчать о втором так же нечестно, как о первом.
+  const hasUnknownDestinations =
+    (prepared.unknownDestinations?.length ?? 0) > 0;
   const queryEvent =
-    prepared.assumedFields.length > 0
+    prepared.assumedFields.length > 0 || hasUnknownDestinations
       ? ({
           type: "query",
           eventId: SEARCH_STREAM_QUERY_EVENT_ID,
           query: prepared.query,
           assumedFields: prepared.assumedFields,
+          ...(hasUnknownDestinations
+            ? { unknownDestinations: prepared.unknownDestinations }
+            : {}),
         } satisfies SearchStreamQueryEvent)
       : undefined;
   let querySent =

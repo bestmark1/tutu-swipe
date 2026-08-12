@@ -33,6 +33,8 @@ export interface DiscoveryQuery {
   dateWindow: DateWindow;
   budget: TripBudget;
   vibeTags: VibeTag[];
+  /** Направления из каталога в порядке упоминания во фразе. */
+  namedDestinations?: string[];
   /** Явный ценовой ориентир без выдуманного денежного потолка. */
   budgetPreference?: "low" | "unrestricted";
 }
@@ -77,14 +79,17 @@ export type DiscoveryParseResult =
        * Поля, которых не было во фразе и которые заполнены умолчаниями.
        * Интерфейс показывает их отдельно, чтобы человек видел, что подставлено,
        * и мог поправить. Пустой массив означает, что всё пришло из запроса.
-       */
+      */
       assumedFields: DiscoveryRequiredField[];
+      /** Названные направления, которых нет в каталоге. */
+      unknownDestinations?: string[];
     }
   | {
       status: "needs_clarification";
       source: "rules" | "rules+fallback";
       blockingFields: DiscoveryBlockingField[];
       clarifications: DiscoveryClarification[];
+      unknownDestinations?: string[];
     }
   | {
       status: "rejected";
@@ -94,6 +99,7 @@ export type DiscoveryParseResult =
       hint: string;
       missingFields: DiscoveryRequiredField[];
       blockingFields: DiscoveryBlockingField[];
+      unknownDestinations?: string[];
     };
 
 /**

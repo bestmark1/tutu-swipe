@@ -141,4 +141,37 @@ describe("offline destination selection", () => {
       expect(Object.values(destination.reachability).flat().length).toBe(6);
     }
   });
+
+  it("F25: puts a named destination first even when it is above budget", () => {
+    const withoutNamed = selectDestinations(
+      query({ budget: { ...query().budget, amount: 1_000 } }),
+    );
+    const candidates = selectDestinations(
+      query({
+        budget: { ...query().budget, amount: 1_000 },
+        namedDestinations: ["Горно-Алтайск"],
+      }),
+    );
+
+    expect(candidates).toHaveLength(withoutNamed.length);
+    expect(candidates[0]).toMatchObject({
+      name: "Горно-Алтайск",
+      aboveBudget: true,
+      isFallback: false,
+    });
+  });
+
+  it("F25: preserves named order and removes duplicates from regular selection", () => {
+    const candidates = selectDestinations(
+      query({
+        vibeTags: ["city"],
+        budget: { ...query().budget, amount: 150_000 },
+        namedDestinations: ["Казань", "Сочи", "Казань"],
+      }),
+    );
+    const names = candidates.map(({ name }) => name);
+
+    expect(names.slice(0, 2)).toEqual(["Казань", "Сочи"]);
+    expect(new Set(names).size).toBe(names.length);
+  });
 });

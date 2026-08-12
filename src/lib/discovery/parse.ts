@@ -8,6 +8,7 @@ import {
   UNRESTRICTED_BUDGET_PHRASES,
   VIBE_SYNONYMS,
 } from "./dictionaries";
+import { destinationCatalog, fullDestinationCatalog } from "./catalog";
 import { discoveryFallbackModel } from "./fallback-model";
 import {
   type DateWindow,
@@ -26,6 +27,139 @@ import {
 const DEFAULT_START_DAY = 10;
 const DEFAULT_NIGHTS = 4;
 
+interface DestinationAliasGroup {
+  aliases: readonly string[];
+  destinations: readonly string[];
+}
+
+// Только словарь из постановки F25. Дополнительные формы ниже — склонения
+// этих же названий, а не новые географические синонимы.
+const REGION_DESTINATION_ALIASES: readonly DestinationAliasGroup[] = [
+  { aliases: ["алтай", "алтае", "алтая"], destinations: ["Горно-Алтайск"] },
+  { aliases: ["байкал", "байкале", "байкала"], destinations: ["Иркутск", "Улан-Удэ"] },
+  { aliases: ["карелия", "карелию", "карелии"], destinations: ["Петрозаводск", "Сортавала"] },
+  { aliases: ["ладога", "ладогу", "ладоге", "ладожское", "ладожском"], destinations: ["Сортавала"] },
+  { aliases: ["онега", "онегу", "онеге", "онежское", "онежском"], destinations: ["Петрозаводск"] },
+  { aliases: ["кавказ", "кавказе", "кавказа"], destinations: ["Пятигорск", "Кисловодск", "Нальчик", "Владикавказ"] },
+  {
+    aliases: [
+      "кавминводы",
+      "кавминводах",
+      "кмв",
+      "минводы",
+      "минводах",
+      "минеральные воды",
+      "минеральных водах",
+    ],
+    destinations: ["Пятигорск", "Кисловодск", "Ессентуки", "Железноводск"],
+  },
+  {
+    aliases: ["золотое кольцо", "золотом кольце", "золотому кольцу"],
+    destinations: ["Владимир", "Суздаль", "Ярославль", "Кострома"],
+  },
+  { aliases: ["дагестан", "дагестане", "дагестана"], destinations: ["Махачкала", "Дербент"] },
+  { aliases: ["адыгея", "адыгею", "адыгее"], destinations: ["Майкоп"] },
+  {
+    aliases: [
+      "осетия",
+      "осетию",
+      "осетии",
+      "северная осетия",
+      "северную осетию",
+      "северной осетии",
+      "алания",
+      "аланию",
+      "алании",
+    ],
+    destinations: ["Владикавказ"],
+  },
+  { aliases: ["кабардино-балкария", "кабардино-балкарию", "кабардино-балкарии", "кбр"], destinations: ["Нальчик"] },
+  { aliases: ["татарстан", "татарстане", "татарстана"], destinations: ["Казань"] },
+  { aliases: ["бурятия", "бурятию", "бурятии"], destinations: ["Улан-Удэ"] },
+  { aliases: ["приморье", "приморье", "приморский край", "приморском крае"], destinations: ["Владивосток"] },
+  { aliases: ["хибины", "хибинах", "териберка", "териберку", "териберке", "кольский", "кольском", "заполярье", "заполярье"], destinations: ["Мурманск"] },
+  { aliases: ["красная поляна", "красную поляну", "красной поляне", "роза хутор", "розе хутор", "сириус", "сириусе", "адлер", "адлере"], destinations: ["Сочи"] },
+  { aliases: ["куршская коса", "куршскую косу", "куршской косе"], destinations: ["Зеленоградск"] },
+  { aliases: ["беларусь", "беларуси", "белоруссия", "белоруссию", "белоруссии"], destinations: ["Минск", "Брест", "Гродно"] },
+  { aliases: ["казахстан", "казахстане", "казахстана"], destinations: ["Алматы", "Астана"] },
+  { aliases: ["узбекистан", "узбекистане", "узбекистана"], destinations: ["Ташкент", "Самарканд"] },
+  { aliases: ["грузия", "грузию", "грузии"], destinations: ["Тбилиси"] },
+  { aliases: ["армения", "армению", "армении"], destinations: ["Ереван"] },
+  { aliases: ["азербайджан", "азербайджане", "азербайджана"], destinations: ["Баку"] },
+  { aliases: ["киргизия", "киргизию", "киргизии", "кыргызстан", "кыргызстане", "кыргызстана"], destinations: ["Бишкек"] },
+] as const;
+
+const CONVERSATIONAL_CITY_ALIASES: readonly DestinationAliasGroup[] = [
+  {
+    aliases: [
+      "питер",
+      "питере",
+      "питера",
+      "спб",
+      "петербург",
+      "петербурге",
+      "петербурга",
+      "санкт петербург",
+      "санкт петербурге",
+      "санкт петербурга",
+    ],
+    destinations: ["Санкт-Петербург"],
+  },
+  { aliases: ["мск"], destinations: ["Москва"] },
+  { aliases: ["нижний", "нижнем", "нижнего"], destinations: ["Нижний Новгород"] },
+  { aliases: ["новосиб"], destinations: ["Новосибирск"] },
+  { aliases: ["екб", "ебург", "екат"], destinations: ["Екатеринбург"] },
+] as const;
+
+const UNKNOWN_DESTINATION_ALIASES: readonly DestinationAliasGroup[] = [
+  { aliases: ["париж", "париже", "парижа"], destinations: ["Париж"] },
+  { aliases: ["крым", "крыму", "крыма"], destinations: ["Крым"] },
+  { aliases: ["абхазия", "абхазию", "абхазии"], destinations: ["Абхазия"] },
+  { aliases: ["камчатка", "камчатку", "камчатке"], destinations: ["Камчатка"] },
+  { aliases: ["домбай", "домбае", "домбая"], destinations: ["Домбай"] },
+  { aliases: ["архыз", "архызе", "архыза"], destinations: ["Архыз"] },
+  { aliases: ["эльбрус", "эльбрусе", "эльбруса"], destinations: ["Эльбрус"] },
+  { aliases: ["байконур", "байконуре", "байконура"], destinations: ["Байконур"] },
+  { aliases: ["ростов", "ростове", "ростова"], destinations: ["Ростов"] },
+] as const;
+
+const MULTIWORD_CITY_FORMS: Readonly<Record<string, readonly string[]>> = {
+  "Горно-Алтайск": ["горно-алтайск", "горно-алтайска", "горно-алтайске"],
+  "Нижний Новгород": [
+    "нижний новгород",
+    "нижнего новгорода",
+    "нижнем новгороде",
+  ],
+  "Великий Новгород": [
+    "великий новгород",
+    "великого новгорода",
+    "великом новгороде",
+  ],
+  "Санкт-Петербург": [
+    "санкт-петербург",
+    "санкт-петербурга",
+    "санкт-петербурге",
+  ],
+  "Улан-Удэ": ["улан-удэ", "улан удэ"],
+  Ессентуки: ["ессентуки", "ессентуках"],
+};
+
+// Регулярками, а не множествами: проверка границ запрещает Map/Set/массивы на
+// уровне модуля, потому что они переживают HTTP-ответ в тёплом процессе. Здесь
+// данных запроса нет, но правило проще соблюсти, чем обосновывать исключение.
+const FEMININE_SOFT_SIGN_CITY = /^(?:Казань|Рязань|Тюмень)$/u;
+const MASCULINE_SOFT_SIGN_CITY = /^(?:Суздаль|Ярославль)$/u;
+
+// Словарь строится по ПОЛНОМУ справочнику, а не по отфильтрованному каталогу:
+// названное направление нужно узнать даже тогда, когда предложить его нельзя.
+// Недостижимые отсеиваются ниже, в parseDestinationMentions, и попадают
+// в unknownDestinations — человек увидит, что его слово услышано.
+const CATALOG_CITY_ALIASES: readonly DestinationAliasGroup[] =
+  fullDestinationCatalog.map(({ name }) => ({
+    aliases: catalogCityForms(name),
+    destinations: [name],
+  }));
+
 export interface ParseTravelQueryOptions {
   today: Date;
   fallback?: DiscoveryFallbackParser;
@@ -38,12 +172,16 @@ export async function parseTravelQuery(
   assertValidToday(options.today);
   const text = normalizeText(input);
   const travellerMatch = parseTravellers(text);
+  const origin = parseOrigin(text);
+  const { namedDestinations, unknownDestinations } =
+    parseDestinationMentions(text, origin);
   const parsed: PartialDiscoveryQuery = {
-    origin: parseOrigin(text),
+    origin,
     travellers: travellerMatch.value,
     dateWindow: parseDateWindow(text, options.today),
     budget: parseBudget(text),
     vibeTags: parseVibeTags(text),
+    namedDestinations,
     budgetPreference: parseBudgetPreference(text),
   };
   removeMissingValues(parsed);
@@ -63,12 +201,13 @@ export async function parseTravelQuery(
       hint: "Проверьте период: дата должна быть в будущем.",
       missingFields: ["dateWindow"],
       blockingFields: [],
+      ...unknownDestinationMetadata(unknownDestinations),
     };
   }
 
   // Правила собрали всё — модель не нужна.
   if (missingFields.length === 0) {
-    return success(parsed, "rules");
+    return success(parsed, "rules", [], unknownDestinations);
   }
 
   const fallback = options.fallback ?? discoveryFallbackModel;
@@ -87,7 +226,7 @@ export async function parseTravelQuery(
   const combinedMissingFields = findMissingFields(combined);
 
   if (combinedMissingFields.length === 0) {
-    return success(combined, "rules+fallback");
+    return success(combined, "rules+fallback", [], unknownDestinations);
   }
 
   const recognizedNothing = recognizedFieldCount(parsed) === 0;
@@ -99,7 +238,11 @@ export async function parseTravelQuery(
     unresolvedBlocking.length > 0 &&
     (!recognizedNothing || travellerMatch.childrenMentionedWithoutAges)
   ) {
-    return clarificationRequired(unresolvedBlocking, "rules+fallback");
+    return clarificationRequired(
+      unresolvedBlocking,
+      "rules+fallback",
+      unknownDestinations,
+    );
   }
 
   // Ни правила, ни модель не поняли ничего — вернуть человеку нечего.
@@ -113,6 +256,7 @@ export async function parseTravelQuery(
         "Назовите город отправления и когда хотите поехать. Например: «из Москвы на море в сентябре».",
       missingFields: combinedMissingFields,
       blockingFields: unresolvedBlocking,
+      ...unknownDestinationMetadata(unknownDestinations),
     };
   }
 
@@ -123,7 +267,139 @@ export async function parseTravelQuery(
     withDefaults(combined, options.today),
     "rules+fallback",
     combinedMissingFields,
+    unknownDestinations,
   );
+}
+
+function parseDestinationMentions(
+  text: string,
+  origin: string | undefined,
+): { namedDestinations?: string[]; unknownDestinations?: string[] } {
+  const catalogNames = new Set(destinationCatalog.map(({ name }) => name));
+  const mentioned = orderedDestinationsFromAliases(text, [
+    ...REGION_DESTINATION_ALIASES,
+    ...CONVERSATIONAL_CITY_ALIASES,
+    ...CATALOG_CITY_ALIASES,
+  ]);
+  const named = mentioned.filter(
+    (destination) =>
+      catalogNames.has(destination) &&
+      normalizeText(destination) !== normalizeText(origin ?? ""),
+  );
+
+  // Названное направление может быть отфильтровано каталогом: Суздаль,
+  // Зеленоградск, Ейск и Светлогорск известны, но MCP не собирает до них
+  // маршрут, и каталог их отбрасывает. Молчать об этом нельзя — человек
+  // написал «на Куршскую косу» и не поймёт, почему ему показывают другое.
+  // Такие направления идут в unknownDestinations вместе с ненайденными.
+  const unreachable = mentioned.filter(
+    (destination) =>
+      !catalogNames.has(destination) &&
+      normalizeText(destination) !== normalizeText(origin ?? ""),
+  );
+
+  const unknown = [
+    ...orderedDestinationsFromAliases(text, UNKNOWN_DESTINATION_ALIASES, true),
+    ...unreachable,
+  ];
+
+  return {
+    ...(named.length > 0 ? { namedDestinations: named } : {}),
+    ...(unknown.length > 0 ? { unknownDestinations: unknown } : {}),
+  };
+}
+
+function orderedDestinationsFromAliases(
+  text: string,
+  groups: readonly DestinationAliasGroup[],
+  directionalOnly = false,
+): string[] {
+  const mentions: Array<{
+    index: number;
+    length: number;
+    groupIndex: number;
+    destinations: readonly string[];
+  }> = [];
+
+  groups.forEach((group, groupIndex) => {
+    for (const rawAlias of new Set(group.aliases)) {
+      const alias = normalizeText(rawAlias);
+      const pattern = new RegExp(
+        `(?:^|[^\\p{L}\\p{N}])(${escapeRegExp(alias)})(?![\\p{L}\\p{N}])`,
+        "gu",
+      );
+      for (const match of text.matchAll(pattern)) {
+        const aliasIndex = (match.index ?? 0) + match[0].length - match[1].length;
+        if (
+          directionalOnly &&
+          !/(?:^|[\s,;])(?:в|на)\s+$/u.test(text.slice(0, aliasIndex))
+        ) {
+          continue;
+        }
+        mentions.push({
+          index: aliasIndex,
+          length: alias.length,
+          groupIndex,
+          destinations: group.destinations,
+        });
+      }
+    }
+  });
+
+  mentions.sort(
+    (left, right) =>
+      left.index - right.index ||
+      right.length - left.length ||
+      left.groupIndex - right.groupIndex,
+  );
+
+  const destinations: string[] = [];
+  const seen = new Set<string>();
+  for (const mention of mentions) {
+    for (const destination of mention.destinations) {
+      if (!seen.has(destination)) {
+        seen.add(destination);
+        destinations.push(destination);
+      }
+    }
+  }
+  return destinations;
+}
+
+function catalogCityForms(name: string): string[] {
+  const explicit = MULTIWORD_CITY_FORMS[name];
+  if (explicit) return [...explicit];
+
+  const normalized = normalizeText(name);
+  const forms = new Set([normalized]);
+  if (FEMININE_SOFT_SIGN_CITY.test(name)) {
+    forms.add(`${normalized.slice(0, -1)}и`);
+  } else if (MASCULINE_SOFT_SIGN_CITY.test(name)) {
+    forms.add(`${normalized.slice(0, -1)}я`);
+    forms.add(`${normalized.slice(0, -1)}е`);
+  } else if (normalized.endsWith("а")) {
+    const stem = normalized.slice(0, -1);
+    forms.add(`${stem}у`);
+    forms.add(`${stem}е`);
+    forms.add(`${stem}${/[гкхжчшщ]$/u.test(stem) ? "и" : "ы"}`);
+  } else if (normalized.endsWith("я")) {
+    const stem = normalized.slice(0, -1);
+    forms.add(`${stem}ю`);
+    forms.add(`${stem}е`);
+    forms.add(`${stem}и`);
+  } else if (/[бвгджзйклмнпрстфхцчшщ]$/u.test(normalized)) {
+    forms.add(`${normalized}а`);
+    forms.add(`${normalized}е`);
+  }
+  return [...forms];
+}
+
+function unknownDestinationMetadata(
+  unknownDestinations: string[] | undefined,
+): { unknownDestinations: string[] } | Record<string, never> {
+  return unknownDestinations && unknownDestinations.length > 0
+    ? { unknownDestinations }
+    : {};
 }
 
 function parseOrigin(text: string): string | undefined {
@@ -501,6 +777,8 @@ function mergeRuleAndFallbackResults(
       rules.vibeTags && rules.vibeTags.length > 0
         ? rules.vibeTags
         : fallback.vibeTags,
+    namedDestinations:
+      rules.namedDestinations ?? fallback.namedDestinations,
     budgetPreference: rules.budgetPreference ?? fallback.budgetPreference,
   };
 }
@@ -517,6 +795,9 @@ function copyPartialQuery(parsed: PartialDiscoveryQuery): PartialDiscoveryQuery 
     dateWindow: parsed.dateWindow ? { ...parsed.dateWindow } : undefined,
     budget: parsed.budget ? { ...parsed.budget } : undefined,
     vibeTags: parsed.vibeTags ? [...parsed.vibeTags] : undefined,
+    namedDestinations: parsed.namedDestinations
+      ? [...parsed.namedDestinations]
+      : undefined,
   };
 }
 
@@ -565,6 +846,7 @@ const CLARIFICATION_QUESTIONS: Record<
 function clarificationRequired(
   blockingFields: DiscoveryBlockingField[],
   source: "rules" | "rules+fallback",
+  unknownDestinations?: string[],
 ): DiscoveryParseResult {
   return {
     status: "needs_clarification",
@@ -574,6 +856,7 @@ function clarificationRequired(
       field,
       question: CLARIFICATION_QUESTIONS[field],
     })),
+    ...unknownDestinationMetadata(unknownDestinations),
   };
 }
 
@@ -581,12 +864,14 @@ function success(
   parsed: PartialDiscoveryQuery,
   source: "rules" | "rules+fallback",
   assumedFields: DiscoveryRequiredField[] = [],
+  unknownDestinations?: string[],
 ): DiscoveryParseResult {
   return {
     status: "success",
     source,
     query: parsed as DiscoveryQuery,
     assumedFields,
+    ...unknownDestinationMetadata(unknownDestinations),
   };
 }
 

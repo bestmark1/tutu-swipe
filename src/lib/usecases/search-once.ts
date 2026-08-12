@@ -43,6 +43,8 @@ export type SearchOnceResult =
       status: "success";
       query: DiscoveryQuery;
       assumedFields: DiscoveryRequiredField[];
+      /** Названо во фразе, но подобрать нельзя — см. SearchStreamQueryEvent. */
+      unknownDestinations?: string[];
       cards: SearchOnceCard[];
     }
   | {
@@ -100,6 +102,9 @@ export async function searchOnce(
       status: "success",
       query: parsed.query,
       assumedFields: parsed.assumedFields,
+      ...(parsed.unknownDestinations && parsed.unknownDestinations.length > 0
+        ? { unknownDestinations: parsed.unknownDestinations }
+        : {}),
       cards,
     };
   }

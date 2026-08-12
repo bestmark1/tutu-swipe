@@ -66,6 +66,8 @@ interface FeedState {
   terminal?: TerminalEvent["type"];
   /** Поля, которых не было во фразе: показываются чипами «подставлено». */
   assumedFields?: DiscoveryRequiredField[];
+  /** Направления, названные во фразе, но недоступные для подбора. */
+  unknownDestinations?: string[];
   /** Разобранный запрос: из него берутся подставленные значения для чипов. */
   parsedQuery?: DiscoveryQuery;
   abortedReason?: Extract<TerminalEvent, { type: "aborted" }>["reason"];
@@ -332,6 +334,7 @@ export function SwipeFeed({
               <p>{reactionCountLabel(reactionCount)}</p>
             </div>
 
+            <UnsupportedDestinations names={feed.unknownDestinations} />
             <AssumedChips chips={assumedChips} onEdit={startNewSearch} />
             <ConnectionMessage connection={connection} hasCards={feed.cards.length > 0} />
             <PartialFailure destinations={feed.failedDestinations} />
@@ -339,6 +342,7 @@ export function SwipeFeed({
             {current ? (
               <TripCard
                 item={current}
+                budget={feed.parsedQuery?.budget}
                 disabled={reactionPending}
                 onPointerDown={pointerDown}
                 onPointerUp={pointerUp}
@@ -414,6 +418,7 @@ function SearchForm({
 
 function TripCard({
   item,
+  budget,
   disabled,
   onPointerDown,
   onPointerUp,
@@ -421,6 +426,7 @@ function TripCard({
   onDislike,
 }: {
   item: FeedCard;
+  budget: DiscoveryQuery["budget"] | undefined;
   disabled: boolean;
   onPointerDown(event: ReactPointerEvent<HTMLElement>): void;
   onPointerUp(event: ReactPointerEvent<HTMLElement>): void;
@@ -429,6 +435,13 @@ function TripCard({
 }) {
   const { card } = item;
   const snapshot = card.source === "snapshot" ? card : undefined;
+  // Названное человеком направление показывается даже дороже лимита — но об
+  // этом надо сказать. Сравниваем фактическую цену, а не ценовой класс:
+  // класс отсеивает направления заранее и грубо, а превышает всегда итог.
+  const overBudget =
+    budget !== undefined &&
+    card.price.total.currency === budget.currency &&
+    card.price.total.amount > budget.amount;
 
   return (
     <article
@@ -507,6 +520,16 @@ function TripCard({
           </dd>
         </div>
       </dl>
+
+      {overBudget ? (
+        <p className="mt-4 rounded-md border border-warn/30 bg-warn-soft px-3 py-2 text-sm leading-6 text-ink">
+          Дороже вашего бюджета на{" "}
+          {formatMoney(
+            card.price.total.amount - budget.amount,
+            card.price.total.currency,
+          )}
+        </p>
+      ) : null}
 
       <p className="mt-4 text-xs leading-5 text-ink-muted">
         {snapshot ? priceAgeLabel(snapshot.priceAgeMs, snapshot.priceIsStale) : "Цена обновлена сейчас"}. Цена могла измениться к моменту перехода на Туту.
@@ -637,6 +660,24 @@ function StatusPanel({ title, children }: { title: string; children: string }) {
   );
 }
 
+/**
+ * Человек назвал направление, а предложить его нельзя: либо его нет в каталоге,
+ * либо MCP не собирает до него маршрут. Раньше такая фраза молча превращалась
+ * в обычный подбор, и было непонятно, куда делся названный город.
+ */
+function UnsupportedDestinations({ names }: { names?: string[] }) {
+  if (!names || names.length === 0) return null;
+  const list = names.join(", ");
+  return (
+    <p
+      className="mt-4 rounded-md border border-warn/30 bg-warn-soft px-4 py-3 text-sm leading-6 text-ink"
+      role="status"
+    >
+      {`${list} мы пока не подбираем — показываем то, что нашли по остальным пожеланиям.`}
+    </p>
+  );
+}
+
 function AssumedChips({
   chips,
   onEdit,
@@ -752,6 +793,7 @@ function applyStreamEvent(
       ...current,
       receivedEventIds,
       assumedFields: event.assumedFields,
+      unknownDestinations: event.unknownDestinations,
       parsedQuery: event.query,
     });
     return;
