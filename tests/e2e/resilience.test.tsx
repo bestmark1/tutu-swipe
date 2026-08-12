@@ -330,7 +330,10 @@ function sessionClient(): SwipeSessionClient {
         SESSION_SECRET,
       );
       if (!applied.ok) throw new Error(applied.error.code);
-      return applied.signedState;
+      return {
+        session: applied.signedState,
+        feed: { order: [], excludedCities: [], refillRequested: false },
+      };
     }),
     undoLastReaction: vi.fn(async (submission) =>
       signedSession(submission.state.reactions.slice(0, -1)),

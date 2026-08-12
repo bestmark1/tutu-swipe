@@ -21,6 +21,8 @@ import type {
   SessionReaction,
   SignedSessionState,
 } from "@/lib/session";
+import type { RankableCard } from "@/lib/ranking";
+import type { ReactionOutcome } from "@/lib/usecases/react";
 import type { SearchStreamEvent } from "@/lib/usecases/search-stream";
 
 import {
@@ -84,7 +86,8 @@ export interface SwipeSessionClient {
   addReaction(
     session: SignedSessionState,
     reaction: SessionReaction,
-  ): Promise<SignedSessionState>;
+    cards: RankableCard[],
+  ): Promise<ReactionOutcome>;
   undoLastReaction(session: SignedSessionState): Promise<SignedSessionState>;
 }
 
@@ -239,12 +242,21 @@ export function SwipeFeed({
         type === "like"
           ? { ...base, type: "like" }
           : { ...base, type: "dislike", reason: "wrong_hotel" };
-      const nextSession = await sessionClient.addReaction(signed, reaction);
+      // Сервер пересчитывает модель из журнала и возвращает новый порядок
+      // оставшихся карточек: просмотренные остаются на местах, а те, что
+      // впереди, перестраиваются под накопленные предпочтения.
+      const outcome = await sessionClient.addReaction(
+        signed,
+        reaction,
+        feedRef.current.cards.map(({ eventId, card }) => ({ ...card, id: eventId })),
+      );
       const latest = feedRef.current;
+      const nextPosition = Math.min(latest.position + 1, latest.cards.length);
       commit({
         ...latest,
-        session: nextSession,
-        position: Math.min(latest.position + 1, latest.cards.length),
+        session: outcome.session,
+        cards: reorderUpcoming(latest.cards, nextPosition, outcome.feed),
+        position: nextPosition,
       });
     } catch {
       setReactionError(true);
@@ -944,6 +956,36 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isAbortError(error: unknown): boolean {
   return error instanceof DOMException && error.name === "AbortError";
+}
+
+/**
+ * Переставляет ещё не показанные карточки в порядке, который вернул сервер.
+ * Уже отсмотренные не трогаем: человек по ним высказался, и менять их местами
+ * задним числом — врать про то, что он видел. Исключённые дизлайком города
+ * убираются из хвоста целиком.
+ */
+function reorderUpcoming(
+  cards: readonly FeedCard[],
+  position: number,
+  feed: ReactionOutcome["feed"],
+): FeedCard[] {
+  const seen = cards.slice(0, position);
+  const upcoming = cards.slice(position);
+  if (upcoming.length === 0) return [...cards];
+
+  const excluded = new Set(feed.excludedCities.map((city) => city.toLowerCase()));
+  const allowed = upcoming.filter(
+    ({ card }) => !excluded.has(card.destination.toLowerCase()),
+  );
+  const byId = new Map(allowed.map((item) => [item.eventId, item]));
+  const ordered: FeedCard[] = [];
+  for (const id of feed.order) {
+    const item = byId.get(id);
+    if (!item) continue;
+    byId.delete(id);
+    ordered.push(item);
+  }
+  return [...seen, ...ordered, ...byId.values()];
 }
 
 function reactionId(): string {

@@ -5,6 +5,7 @@ import {
   SwipeFeed,
   type SwipeSessionClient,
 } from "@/app/swipe/swipe-feed";
+import type { ReactionOutcome } from "@/lib/usecases/react";
 import type { SearchStreamEvent } from "@/lib/usecases/search-stream";
 import type {
   SessionReaction,
@@ -134,9 +135,10 @@ function responseFor(events: SearchStreamEvent[]): Response {
 function sessionClient(): SwipeSessionClient {
   return {
     createSession: vi.fn(async () => session()),
-    addReaction: vi.fn(async (signed, reaction) =>
-      session([...signed.state.reactions, reaction]),
-    ),
+    addReaction: vi.fn(async (signed, reaction) => ({
+      session: session([...signed.state.reactions, reaction]),
+      feed: { order: [], excludedCities: [], refillRequested: false },
+    })),
     undoLastReaction: vi.fn(async (signed) =>
       session(signed.state.reactions.slice(0, -1)),
     ),
@@ -649,7 +651,7 @@ describe("swipe feed", () => {
   });
 
   it("AC23: a gesture and click racing on one card count once", async () => {
-    let resolveReaction!: (value: SignedSessionState) => void;
+    let resolveReaction!: (value: ReactionOutcome) => void;
     const client = sessionClient();
     vi.mocked(client.addReaction).mockImplementationOnce(
       () => new Promise((resolve) => {
@@ -679,9 +681,10 @@ describe("swipe feed", () => {
     fireEvent.click(screen.getByRole("button", { name: "Нравится" }));
 
     expect(client.addReaction).toHaveBeenCalledOnce();
-    resolveReaction(session([
-      vi.mocked(client.addReaction).mock.calls[0][1],
-    ]));
+    resolveReaction({
+      session: session([vi.mocked(client.addReaction).mock.calls[0][1]]),
+      feed: { order: [], excludedCities: [], refillRequested: false },
+    });
     expect(await screen.findByRole("heading", { name: "Казань" })).toBeVisible();
   });
 
@@ -761,6 +764,77 @@ describe("swipe feed", () => {
     );
 
     expect(await screen.findByRole("heading", { name: "Сочи" })).toBeVisible();
+  });
+
+  // F26: до подключения модели лайки сохранялись, но ни на что не влияли —
+  // порядок карточек оставался тем, в каком они пришли из потока.
+  it("F26: реакция переставляет ещё не показанные карточки", async () => {
+    const client = sessionClient();
+    vi.mocked(client.addReaction).mockImplementationOnce(async (signed, reaction) => ({
+      session: session([...signed.state.reactions, reaction]),
+      feed: {
+        order: ["snapshot-3", "snapshot-2"],
+        excludedCities: [],
+        refillRequested: false,
+      },
+    }));
+    render(
+      <SwipeFeed
+        initialQuery="поездка"
+        initialSession={session()}
+        fetcher={vi.fn(async () =>
+          responseFor([
+            appendEvent("snapshot-1", "Сочи"),
+            appendEvent("snapshot-2", "Казань"),
+            appendEvent("snapshot-3", "Туапсе"),
+            doneEvent([card("Сочи"), card("Казань"), card("Туапсе")]),
+          ]),
+        )}
+        sessionClient={client}
+        storageKey="reorder"
+      />,
+    );
+
+    await screen.findByRole("heading", { name: "Сочи" });
+    fireEvent.click(screen.getByRole("button", { name: "Нравится" }));
+
+    // Сервер вернул порядок «Туапсе, Казань» — значит следующим идёт Туапсе,
+    // хотя в потоке он пришёл последним.
+    expect(await screen.findByRole("heading", { name: "Туапсе" })).toBeVisible();
+  });
+
+  it("F26: город, исключённый дизлайком, убирается из хвоста", async () => {
+    const client = sessionClient();
+    vi.mocked(client.addReaction).mockImplementationOnce(async (signed, reaction) => ({
+      session: session([...signed.state.reactions, reaction]),
+      feed: {
+        order: ["snapshot-3"],
+        excludedCities: ["Казань"],
+        refillRequested: false,
+      },
+    }));
+    render(
+      <SwipeFeed
+        initialQuery="поездка"
+        initialSession={session()}
+        fetcher={vi.fn(async () =>
+          responseFor([
+            appendEvent("snapshot-1", "Сочи"),
+            appendEvent("snapshot-2", "Казань"),
+            appendEvent("snapshot-3", "Туапсе"),
+            doneEvent([card("Сочи"), card("Казань"), card("Туапсе")]),
+          ]),
+        )}
+        sessionClient={client}
+        storageKey="excluded"
+      />,
+    );
+
+    await screen.findByRole("heading", { name: "Сочи" });
+    fireEvent.click(screen.getByRole("button", { name: "Не нравится" }));
+
+    expect(await screen.findByRole("heading", { name: "Туапсе" })).toBeVisible();
+    expect(screen.getByText("2 варианта в ленте")).toBeVisible();
   });
 
   it("F25: предупреждает, когда названное направление дороже бюджета", async () => {
