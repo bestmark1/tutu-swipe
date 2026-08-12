@@ -26,6 +26,8 @@ const DEFAULT_CONCURRENCY = 4;
 const DEFAULT_TARGET_POOL_SIZE = 5;
 /** Сколько вариантов жилья показывать, когда город назван и он один. */
 const SINGLE_DESTINATION_HOTEL_VARIANTS = 5;
+/** Берём с запасом, чтобы в ответе оказались разные виды транспорта. */
+const TRANSPORT_PAGE_SIZE = 12;
 
 export interface RateLimitedOutcome {
   status: "rate_limited";
@@ -351,7 +353,7 @@ async function searchCandidate(
         departure_date: query.dateWindow.startDate,
         adults: query.travellers.adults,
         optimize_for: "price",
-        page_size: 1,
+        page_size: TRANSPORT_PAGE_SIZE,
         view: "compact",
       },
       signal,
@@ -422,11 +424,46 @@ async function searchCandidate(
     if (built.status !== "built") continue;
     cards.push({ ...built.card, destination });
   }
+
+  // Самый дешёвый вариант почти всегда один и тот же автобус или поезд, и лента
+  // выходит однообразной: одинаковая дорога, отличается только жильё. Свайпать
+  // осмысленно, когда есть выбор «дешевле и дольше или быстрее и дороже»:
+  // Москва → Казань это поезд 13 ч за 2 091 ₽, автобус 10 ч за 2 200 ₽ и
+  // самолёт 2 ч за 3 379 ₽. Разнообразие берём из того же ответа, не тратя
+  // второй запрос и бюджет времени: по одному лучшему варианту на каждый вид.
+  const alternative = fastestOfOtherKind(transportSearch.variants);
+  if (alternative) {
+    const built = buildTripCard(
+      { ...transportSearch, variants: [alternative] },
+      { ...hotelSearch, hotels: hotelSearch.hotels.slice(0, 1) },
+      { adults: query.travellers.adults },
+    );
+    if (built.status === "built") cards.push({ ...built.card, destination });
+  }
+
   if (cards.length === 0) {
     return { status: "error", reason: "not_built", sourceState };
   }
 
   return { status: "card", sourceState: "available", cards };
+}
+
+/**
+ * Самый быстрый вариант среди видов транспорта, отличных от первого (самого
+ * дешёвого). Возвращает undefined, когда весь ответ — один вид: тогда
+ * альтернативы по смыслу нет и вторая карточка не нужна.
+ */
+function fastestOfOtherKind<T extends { transport: string; durationMinutes: number }>(
+  variants: readonly T[],
+): T | undefined {
+  const cheapest = variants[0];
+  if (!cheapest) return undefined;
+  let best: T | undefined;
+  for (const variant of variants) {
+    if (variant.transport === cheapest.transport) continue;
+    if (!best || variant.durationMinutes < best.durationMinutes) best = variant;
+  }
+  return best;
 }
 
 async function callWithRetryAfter(
