@@ -18,7 +18,13 @@ const READY_TIMEOUT_MS = 60_000;
 // Критические пути проекта. Добавляй сюда маршруты по мере появления фич:
 // проверяется код ответа и то, что в HTML есть ожидаемый маркер.
 const ROUTES = [
-  { path: "/", status: 200, contains: "Куда отправимся?" },
+  {
+    path: "/",
+    status: 307,
+    location: "/swipe",
+    request: { redirect: "manual" },
+  },
+  { path: "/swipe", status: 200, contains: "Лента поездок" },
   {
     path: "/api/search",
     status: 400,
@@ -120,6 +126,13 @@ async function probeRoutes() {
     if (response.status !== route.status) {
       failures.push(
         `${route.path}: код ${response.status}, ожидался ${route.status}`
+      );
+      continue;
+    }
+
+    if (route.location && response.headers.get("location") !== route.location) {
+      failures.push(
+        `${route.path}: Location ${response.headers.get("location")}, ожидался ${route.location}`
       );
       continue;
     }

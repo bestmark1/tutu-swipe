@@ -1,4 +1,3 @@
-import { searchOnce, type SearchOnceResult } from "@/lib/usecases/search-once";
 import {
   prepareSearchStream,
   SEARCH_STREAM_QUERY_EVENT_ID,
@@ -36,23 +35,18 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
-  if (request.headers.get("accept")?.includes(STREAM_MEDIA_TYPE)) {
-    const receivedEventIds = readReceivedEventIds(body.receivedEventIds);
-    if (!receivedEventIds) {
-      return Response.json(
-        {
-          status: "error",
-          code: "invalid_resume_cursor",
-          message: "Список полученных событий имеет неверный формат.",
-        },
-        { status: 400 },
-      );
-    }
-    return streamSearch(input, receivedEventIds, request.signal);
+  const receivedEventIds = readReceivedEventIds(body.receivedEventIds);
+  if (!receivedEventIds) {
+    return Response.json(
+      {
+        status: "error",
+        code: "invalid_resume_cursor",
+        message: "Список полученных событий имеет неверный формат.",
+      },
+      { status: 400 },
+    );
   }
-
-  const result = await searchOnce(input, { signal: request.signal });
-  return Response.json(result, { status: httpStatus(result) });
+  return streamSearch(input, receivedEventIds, request.signal);
 }
 
 async function streamSearch(
@@ -147,14 +141,6 @@ async function readJsonObject(
   } catch {
     return undefined;
   }
-}
-
-function httpStatus(result: SearchOnceResult): number {
-  if (result.status === "source_unavailable") return 503;
-  if (result.status === "needs_clarification" || result.status === "rejected") {
-    return 422;
-  }
-  return 200;
 }
 
 function readReceivedEventIds(value: unknown): Set<string> | undefined {

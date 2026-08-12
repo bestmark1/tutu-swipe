@@ -94,7 +94,7 @@ function budgetLabel(query: DiscoveryQuery): string {
 }
 
 function vibeLabel(query: DiscoveryQuery): string {
-  if (query.vibeTags.length === 0) return "любое настроение";
+  if (query.vibeTags.length === 0) return "любой тип отдыха";
   return query.vibeTags.map((tag) => VIBE_LABELS[tag]).join(", ");
 }
 

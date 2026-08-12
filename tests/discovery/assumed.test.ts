@@ -64,11 +64,11 @@ describe("assumed field chips", () => {
     ).toEqual([{ field: "budget", label: "недорого" }]);
   });
 
-  it("marks an empty vibe default as any mood rather than inventing tags", () => {
+  it("names an empty vibe default as any type of holiday", () => {
     const chips = assumedFieldChips({ ...QUERY, vibeTags: [] }, ["vibeTags"]);
 
     expect(chips).toEqual([
-      { field: "vibeTags", label: "любое настроение" },
+      { field: "vibeTags", label: "любой тип отдыха" },
     ]);
   });
 
