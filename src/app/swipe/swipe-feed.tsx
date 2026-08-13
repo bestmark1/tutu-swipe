@@ -921,14 +921,20 @@ function applyStreamEvent(
       commit({ ...current, receivedEventIds });
       return;
     }
-    const existingIndex =
+    const exactReplacementIndex =
       event.update === "replace"
         ? current.cards.findIndex(
-            (item) =>
-              item.eventId === event.replacesEventId ||
-              item.card.destination === event.destination,
+            (item) => item.eventId === event.replacesEventId,
           )
         : -1;
+    const existingIndex =
+      exactReplacementIndex >= 0
+        ? exactReplacementIndex
+        : event.update === "replace"
+          ? current.cards.findIndex(
+              (item) => item.card.destination === event.destination,
+            )
+          : -1;
     const item: FeedCard = {
       eventId: event.eventId,
       card: event.card,

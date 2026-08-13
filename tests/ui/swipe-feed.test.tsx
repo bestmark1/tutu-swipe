@@ -451,6 +451,80 @@ describe("swipe feed", () => {
     expect(screen.getByText("Данные обновлены")).toBeVisible();
   });
 
+  it("replaces the requested snapshot when a destination has multiple transports", async () => {
+    const firstSnapshot = appendEvent("snapshot-railway", "Сочи", 50_000);
+    const secondSnapshot: SearchStreamEvent = {
+      type: "card",
+      eventId: "snapshot-avia",
+      destination: "Сочи",
+      card: {
+        ...card("Сочи", 55_000),
+        transport: {
+          ...card("Сочи").transport,
+          id: "snapshot-transport-avia",
+          transport: "avia",
+        },
+      },
+      source: "snapshot",
+      update: "append",
+    };
+    const liveRailway = {
+      ...card("Сочи", 47_000),
+      source: "live" as const,
+      transport: { ...card("Сочи").transport, id: "live-transport-railway" },
+    };
+    const liveAvia = {
+      ...card("Сочи", 49_000),
+      source: "live" as const,
+      transport: {
+        ...card("Сочи").transport,
+        id: "live-transport-avia",
+        transport: "avia",
+      },
+    };
+
+    render(
+      <SwipeFeed
+        initialQuery="поездка"
+        initialSession={session()}
+        fetcher={vi.fn(async () =>
+          responseFor([
+            firstSnapshot,
+            secondSnapshot,
+            {
+              type: "card",
+              eventId: "live-railway",
+              destination: "Сочи",
+              card: liveRailway,
+              source: "live",
+              update: "replace",
+              replacesEventId: "snapshot-railway",
+            },
+            {
+              type: "card",
+              eventId: "live-avia",
+              destination: "Сочи",
+              card: liveAvia,
+              source: "live",
+              update: "replace",
+              replacesEventId: "snapshot-avia",
+            },
+            { type: "done", eventId: "done", pool: [liveRailway, liveAvia] },
+          ]),
+        )}
+        sessionClient={sessionClient()}
+        storageKey="multi-transport-replacement"
+      />,
+    );
+
+    await screen.findByText("47 000 ₽");
+    expect(screen.getByText("2 варианта в ленте")).toBeVisible();
+    expect(screen.queryByText("50 000 ₽")).not.toBeInTheDocument();
+    expect(screen.queryByText("55 000 ₽")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Нравится" }));
+    await screen.findByText("49 000 ₽");
+  });
+
   it.each([
     [
       "AC10 empty",

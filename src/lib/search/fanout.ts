@@ -104,6 +104,12 @@ interface ActiveResult {
   result: CandidateResult;
 }
 
+interface SnapshotSlot {
+  eventId: string;
+  poolKey: string;
+  transportKind: string;
+}
+
 export async function* fanOutSearch(
   options: FanOutSearchOptions,
 ): AsyncGenerator<FanOutSearchEvent> {
@@ -124,25 +130,42 @@ export async function* fanOutSearch(
       : 1;
   const snapshot = loadSnapshot({ filePath: options.snapshotPath });
   const poolByDestination = new Map<string, FanOutSearchCard>();
-  const snapshotEventIds = new Map<string, string>();
+  const snapshotEventIds = new Map<string, SnapshotSlot[]>();
+  const snapshotDestinations = new Set<string>();
 
   for (const [index, candidate] of options.candidates.entries()) {
     if (hotelPage > 1) break;
-    const card = snapshot.getCard(options.query.origin, candidate.name);
-    if (!card) continue;
-
-    const eventId = `snapshot-card-${index + 1}`;
+    const cards = snapshot.getCards(options.query.origin, candidate.name);
+    if (cards.length === 0) continue;
     const destinationKey = normalizeDestination(candidate.name);
-    snapshotEventIds.set(destinationKey, eventId);
-    poolByDestination.set(destinationKey, card);
-    yield {
-      type: "card",
-      eventId,
-      destination: candidate.name,
-      card,
-      source: "snapshot",
-      update: "append",
-    };
+    const slots: SnapshotSlot[] = [];
+    snapshotDestinations.add(destinationKey);
+
+    for (const [variantIndex, card] of cards.entries()) {
+      const eventId =
+        variantIndex === 0
+          ? `snapshot-card-${index + 1}`
+          : `snapshot-card-${index + 1}-${variantIndex + 1}`;
+      const poolKey =
+        variantIndex === 0
+          ? destinationKey
+          : `${destinationKey}#snapshot-${variantIndex + 1}`;
+      slots.push({
+        eventId,
+        poolKey,
+        transportKind: card.transport.transport,
+      });
+      poolByDestination.set(poolKey, card);
+      yield {
+        type: "card",
+        eventId,
+        destination: candidate.name,
+        card,
+        source: "snapshot",
+        update: "append",
+      };
+    }
+    snapshotEventIds.set(destinationKey, slots);
   }
 
   // The live branch starts only after snapshot events have been consumed.
@@ -235,14 +258,15 @@ export async function* fanOutSearch(
 
       if (completed.result.status === "card") {
         const destinationKey = normalizeDestination(destination);
-        // Снапшотная карточка по городу одна, поэтому её заменяет только первый
-        // живой вариант. Остальные варианты того же города добавляются рядом и
-        // живут в пуле под собственными ключами.
-        const replacesEventId = snapshotEventIds.get(destinationKey);
-        const isNewDestination = replacesEventId === undefined;
+        const replacements = matchSnapshotSlots(
+          snapshotEventIds.get(destinationKey) ?? [],
+          completed.result.cards,
+        );
+        const isNewDestination = !snapshotDestinations.has(destinationKey);
 
         for (const [variantIndex, source] of completed.result.cards.entries()) {
           const isFirstVariant = variantIndex === 0;
+          const replacement = replacements[variantIndex];
           const card: LiveSearchCard = {
             ...source,
             source: "live",
@@ -250,9 +274,11 @@ export async function* fanOutSearch(
               ? { isNewDestination: true }
               : {}),
           };
-          const poolKey = isFirstVariant
-            ? destinationKey
-            : `${destinationKey}#${variantIndex + 1}`;
+          const poolKey =
+            replacement?.poolKey ??
+            (isFirstVariant
+              ? destinationKey
+              : `${destinationKey}#live-${variantIndex + 1}`);
           poolByDestination.set(poolKey, card);
           liveCardCount += 1;
           if (
@@ -262,7 +288,7 @@ export async function* fanOutSearch(
             stopReason = "pool_complete";
             requestController.abort(new Error("target pool complete"));
           }
-          const replaces = isFirstVariant ? replacesEventId : undefined;
+          const replaces = replacement?.eventId;
           yield {
             type: "card",
             eventId: isFirstVariant
@@ -321,6 +347,29 @@ export async function* fanOutSearch(
       requestController.abort(new Error("search stream closed"));
     }
   }
+}
+
+function matchSnapshotSlots(
+  slots: readonly SnapshotSlot[],
+  cards: readonly SearchCard[],
+): Array<SnapshotSlot | undefined> {
+  const remaining = [...slots];
+  const matches = cards.map((card) => {
+    const matchingIndex = remaining.findIndex(
+      ({ transportKind }) => transportKind === card.transport.transport,
+    );
+    if (matchingIndex < 0) return undefined;
+    return remaining.splice(matchingIndex, 1)[0];
+  });
+
+  for (
+    let index = 0;
+    index < matches.length && remaining.length > 0;
+    index += 1
+  ) {
+    if (!matches[index]) matches[index] = remaining.shift();
+  }
+  return matches;
 }
 
 async function searchCandidate(

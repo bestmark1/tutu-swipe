@@ -76,10 +76,15 @@ describe("end-to-end failure scenarios", () => {
           reason: "source_unavailable",
         }),
       );
-      expect(events.at(-1)).toMatchObject({
-        type: "done",
-        pool: [expect.objectContaining({ destination: "Сочи" })],
-      });
+      // Снапшот держит несколько вариантов транспорта на направление, поэтому
+      // карточек Сочи в пуле может быть больше одной — важно, что при упавшем
+      // живом поиске они остаются и лента не пустеет.
+      const terminal = events.at(-1) as { type: string; pool: unknown[] };
+      expect(terminal.type).toBe("done");
+      expect(terminal.pool.length).toBeGreaterThan(0);
+      expect(terminal.pool).toEqual(
+        terminal.pool.map(() => expect.objectContaining({ destination: "Сочи" })),
+      );
 
       renderFeed(events, `component-${failedTool}`);
       expect(
@@ -272,7 +277,7 @@ function renderFeed(events: FanOutSearchEvent[], storageKey: string) {
 function snapshotEvent(eventId: string, destination: string) {
   const card = loadSnapshot({
     now: new Date("2026-08-07T00:00:00.000Z"),
-  }).getCard("Москва", destination);
+  }).getCards("Москва", destination)[0];
   if (!card) throw new Error(`Missing snapshot card for ${destination}`);
 
   return {

@@ -27,6 +27,7 @@ const MAX_CONCURRENCY = 6;
 const DEFAULT_TIMEOUT_MS = 20_000;
 const EXPECTED_ORIGIN_COUNT = 6;
 const SNAPSHOT_ADULTS = 2;
+const TRANSPORT_PAGE_SIZE = 12;
 
 export function projectSnapshotEntry({
   origin,
@@ -56,6 +57,17 @@ export function projectSnapshotEntry({
     return null;
   }
 
+  const alternative = fastestOfOtherKind([
+    compactTransport,
+    ...transportVariants.slice(1).map(projectTransport).filter(Boolean),
+  ]);
+  const transports = [compactTransport];
+  if (
+    alternative &&
+    alternative.price.currency === compactHotel.best_offer.price.currency
+  ) {
+    transports.push(alternative);
+  }
   const stay = projectStay(
     requiredRecord(hotelPayload, "hotel payload").stay,
   );
@@ -64,7 +76,7 @@ export function projectSnapshotEntry({
     destination: requiredString(destination, "destination"),
     builtAt: requiredIsoDate(builtAt, "builtAt"),
     adults: requiredPositiveInteger(adults, "adults"),
-    transport: compactTransport,
+    transports,
     hotel: compactHotel,
     stay,
   };
@@ -76,7 +88,7 @@ async function main() {
   const { origins, destinations } = readBuildMatrix(validation);
   const startedAt = new Date().toISOString();
   const output = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     run: {
       status: "in_progress",
       startedAt,
@@ -148,7 +160,7 @@ async function main() {
                 adults: SNAPSHOT_ADULTS,
                 optimize_for: "price",
                 page: 1,
-                page_size: 1,
+                page_size: TRANSPORT_PAGE_SIZE,
                 view: "compact",
               },
             });
@@ -177,9 +189,11 @@ async function main() {
         sortEntries(output.entries);
         persistSnapshot(output);
         console.log(
-          `${destination}: ${output.entries.filter(
-            (entry) => entry.destination === destination,
-          ).length} карточек`,
+          `${destination}: ${countSnapshotCards(
+            output.entries.filter(
+              (entry) => entry.destination === destination,
+            ),
+          )} карточек`,
         );
       },
     );
@@ -208,7 +222,7 @@ async function main() {
   persistSnapshot(output);
   commitSnapshot();
   console.log(
-    `Готово: ${output.entries.length} карточек, ` +
+    `Готово: ${countSnapshotCards(output.entries)} карточек, ` +
       `${output.run.failures.length} ошибок. Файл: ` +
       path.relative(PROJECT_ROOT, SNAPSHOT_FILE),
   );
@@ -334,6 +348,17 @@ function projectTransport(value) {
   } catch {
     return null;
   }
+}
+
+function fastestOfOtherKind(variants) {
+  const cheapest = variants[0];
+  if (!cheapest) return undefined;
+  let best;
+  for (const variant of variants) {
+    if (variant.transport === cheapest.transport) continue;
+    if (!best || variant.duration_min < best.duration_min) best = variant;
+  }
+  return best;
 }
 
 function projectLeg(value, index) {
@@ -479,6 +504,10 @@ function sortEntries(entries) {
       left.origin.localeCompare(right.origin, "ru") ||
       left.destination.localeCompare(right.destination, "ru"),
   );
+}
+
+function countSnapshotCards(entries) {
+  return entries.reduce((count, entry) => count + entry.transports.length, 0);
 }
 
 async function mapWithConcurrency(items, concurrency, worker) {

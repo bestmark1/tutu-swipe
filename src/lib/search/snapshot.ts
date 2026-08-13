@@ -24,7 +24,7 @@ export type SnapshotSearchCard = SearchCard & {
 };
 
 export interface SnapshotIndex {
-  getCard(origin: string, destination: string): SnapshotSearchCard | undefined;
+  getCards(origin: string, destination: string): readonly SnapshotSearchCard[];
 }
 
 export interface LoadSnapshotOptions {
@@ -58,31 +58,45 @@ function createIndex(
   now: Date,
   staleAfterMs: number,
 ): SnapshotIndex {
-  if (!isRecord(value) || value.schemaVersion !== 1) return emptyIndex();
+  if (
+    !isRecord(value) ||
+    (value.schemaVersion !== 1 && value.schemaVersion !== 2)
+  ) {
+    return emptyIndex();
+  }
   if (!Array.isArray(value.entries)) return emptyIndex();
 
-  const cards = new Map<string, SnapshotSearchCard>();
+  const cards = new Map<string, SnapshotSearchCard[]>();
   for (const entry of value.entries) {
     try {
-      const parsed = parseEntry(entry, now, staleAfterMs);
-      cards.set(snapshotKey(parsed.origin, parsed.card.destination), parsed.card);
+      const parsed = parseEntry(
+        entry,
+        value.schemaVersion,
+        now,
+        staleAfterMs,
+      );
+      cards.set(
+        snapshotKey(parsed.origin, parsed.destination),
+        parsed.cards,
+      );
     } catch {
       // One bad entry must not invalidate the rest of the checked-in snapshot.
     }
   }
 
   return {
-    getCard(origin, destination) {
-      return cards.get(snapshotKey(origin, destination));
+    getCards(origin, destination) {
+      return cards.get(snapshotKey(origin, destination)) ?? [];
     },
   };
 }
 
 function parseEntry(
   value: unknown,
+  schemaVersion: 1 | 2,
   now: Date,
   staleAfterMs: number,
-): { origin: string; card: SnapshotSearchCard } {
+): { origin: string; destination: string; cards: SnapshotSearchCard[] } {
   const entry = requiredRecord(value, "snapshot entry");
   const origin = requiredString(entry.origin, "origin");
   const destination = requiredString(entry.destination, "destination");
@@ -92,31 +106,45 @@ function parseEntry(
     throw new TypeError("builtAt must be an ISO date");
   }
 
-  const transport = parseTransport(entry.transport);
+  const transports = snapshotTransports(entry, schemaVersion).map(
+    parseTransport,
+  );
   const hotel = parseHotel(entry.hotel);
   const stay = parseStay(entry.stay);
   const adults = snapshotAdults(entry.adults);
-  const built = buildTripCard(
-    { variants: [transport] },
-    { hotels: [hotel], stay },
-    { adults },
-  );
-  if (built.status !== "built") {
-    throw new TypeError(`snapshot card cannot be built: ${built.reason}`);
-  }
-
   const priceAgeMs = Math.max(0, now.getTime() - builtAtMs);
-  return {
-    origin,
-    card: {
+  const cards = transports.map((transport): SnapshotSearchCard => {
+    const built = buildTripCard(
+      { variants: [transport] },
+      { hotels: [hotel], stay },
+      { adults },
+    );
+    if (built.status !== "built") {
+      throw new TypeError(`snapshot card cannot be built: ${built.reason}`);
+    }
+
+    return {
       ...built.card,
       destination,
       source: "snapshot",
       snapshotBuiltAt,
       priceAgeMs,
       priceIsStale: priceAgeMs > staleAfterMs,
-    },
+    };
+  });
+  return {
+    origin,
+    destination,
+    cards,
   };
+}
+
+function snapshotTransports(
+  entry: Record<string, unknown>,
+  schemaVersion: 1 | 2,
+): unknown[] {
+  if (schemaVersion === 1) return [entry.transport];
+  return requiredArray(entry.transports, "transports");
 }
 
 function parseTransport(value: unknown): TransportVariantDto {
@@ -244,7 +272,7 @@ function snapshotAdults(value: unknown): number {
 }
 
 function emptyIndex(): SnapshotIndex {
-  return { getCard: () => undefined };
+  return { getCards: () => [] };
 }
 
 function snapshotKey(origin: string, destination: string): string {
@@ -299,6 +327,11 @@ function optionalBoolean(value: unknown): boolean | undefined {
 function optionalArray(value: unknown): unknown[] {
   if (value === undefined || value === null) return [];
   if (!Array.isArray(value)) throw new TypeError("optional value must be an array");
+  return value;
+}
+
+function requiredArray(value: unknown, label: string): unknown[] {
+  if (!Array.isArray(value)) throw new TypeError(`${label} must be an array`);
   return value;
 }
 

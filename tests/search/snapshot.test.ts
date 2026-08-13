@@ -48,6 +48,20 @@ const transport: TransportSearchDto = {
   meta: { unavailable: [] },
 };
 
+const diverseTransport: TransportSearchDto = {
+  ...transport,
+  variants: [
+    transport.variants[0],
+    {
+      ...transport.variants[0],
+      id: "live-flight",
+      transport: "avia",
+      price: { amount: 12_500, currency: "RUB" },
+      durationMinutes: 110,
+    },
+  ],
+};
+
 const hotel: HotelSearchDto = {
   type: "hotel",
   hotels: [
@@ -103,14 +117,14 @@ describe("snapshot search", () => {
 
     expect(entry).toMatchObject({
       adults: 2,
-      transport: {
-        search_results_url: "https://www.tutu.ru/snapshot-search",
-      },
+      transports: [
+        { search_results_url: "https://www.tutu.ru/snapshot-search" },
+      ],
     });
     expect(JSON.stringify(entry)).not.toContain("checkout");
   });
 
-  it("AC16: snapshot card carries its build date and price age", () => {
+  it("AC16: reads a legacy single-transport snapshot with its price age", () => {
     const builtAt = "2026-08-05T10:00:00.000Z";
     const snapshotPath = writeSnapshot(snapshotDocument(builtAt));
 
@@ -119,9 +133,10 @@ describe("snapshot search", () => {
       now: new Date("2026-08-05T12:00:00.000Z"),
       staleAfterMs: 3 * 60 * 60 * 1_000,
     });
-    const card = snapshot.getCard("Москва", "Сочи");
+    const cards = snapshot.getCards("Москва", "Сочи");
 
-    expect(card).toMatchObject({
+    expect(cards).toHaveLength(1);
+    expect(cards[0]).toMatchObject({
       destination: "Сочи",
       source: "snapshot",
       snapshotBuiltAt: builtAt,
@@ -140,6 +155,92 @@ describe("snapshot search", () => {
         },
       },
     });
+  });
+
+  it("reads every transport from a multi-transport snapshot", () => {
+    const snapshotPath = writeSnapshot(multiTransportSnapshotDocument());
+
+    const cards = loadSnapshot({
+      filePath: snapshotPath,
+      now: new Date("2026-08-05T12:00:00.000Z"),
+    }).getCards("Москва", "Сочи");
+
+    expect(cards).toHaveLength(2);
+    expect(cards.map(({ transport }) => transport.transport)).toEqual([
+      "railway",
+      "avia",
+    ]);
+    expect(cards.map(({ transport }) => transport.id)).toEqual([
+      "snapshot-transport",
+      "snapshot-flight",
+    ]);
+  });
+
+  it("stores the cheapest transport plus the fastest other kind", () => {
+    const legacy = snapshotDocument().entries[0];
+    const entry = projectSnapshotEntry({
+      origin: "Москва",
+      destination: "Сочи",
+      builtAt: "2026-08-05T10:00:00.000Z",
+      adults: 2,
+      transportPayload: {
+        variants: [
+          legacy.transport,
+          {
+            ...legacy.transport,
+            offer_id: "slow-flight",
+            transport: "avia",
+            duration_min: 180,
+          },
+          {
+            ...legacy.transport,
+            offer_id: "fast-bus",
+            transport: "bus",
+            duration_min: 120,
+          },
+          {
+            ...legacy.transport,
+            offer_id: "another-train",
+            duration_min: 90,
+          },
+        ],
+      },
+      hotelPayload: {
+        hotels: [legacy.hotel],
+        stay: legacy.stay,
+      },
+    });
+
+    expect(entry?.transports.map(({ offer_id }) => offer_id)).toEqual([
+      "snapshot-transport",
+      "fast-bus",
+    ]);
+  });
+
+  it("stores no alternative when every transport has the same kind", () => {
+    const legacy = snapshotDocument().entries[0];
+    const entry = projectSnapshotEntry({
+      origin: "Москва",
+      destination: "Сочи",
+      builtAt: "2026-08-05T10:00:00.000Z",
+      adults: 2,
+      transportPayload: {
+        variants: [
+          legacy.transport,
+          {
+            ...legacy.transport,
+            offer_id: "faster-train",
+            duration_min: 300,
+          },
+        ],
+      },
+      hotelPayload: {
+        hotels: [legacy.hotel],
+        stay: legacy.stay,
+      },
+    });
+
+    expect(entry?.transports).toHaveLength(1);
   });
 
   it("AC7: yields a snapshot card before making any MCP call", async () => {
@@ -162,6 +263,27 @@ describe("snapshot search", () => {
       },
     });
     expect(client.callTool).not.toHaveBeenCalled();
+  });
+
+  it("yields every snapshot transport for a direction before making an MCP call", async () => {
+    const snapshotPath = writeSnapshot(multiTransportSnapshotDocument());
+    const client = successfulClient();
+    const iterator = fanOutSearch({
+      candidates: [{ name: "Сочи" }],
+      query,
+      client,
+      snapshotPath,
+    })[Symbol.asyncIterator]();
+
+    const first = await iterator.next();
+    const second = await iterator.next();
+
+    expect([first.value, second.value]).toMatchObject([
+      { type: "card", source: "snapshot", card: { transport: { transport: "railway" } } },
+      { type: "card", source: "snapshot", card: { transport: { transport: "avia" } } },
+    ]);
+    expect(client.callTool).not.toHaveBeenCalled();
+    await iterator.return?.(undefined);
   });
 
   it("AC7a: distinguishes a live replacement for the same destination", async () => {
@@ -190,6 +312,38 @@ describe("snapshot search", () => {
     expect(events.at(-1)).toMatchObject({
       type: "done",
       pool: [{ destination: "Сочи", source: "live" }],
+    });
+  });
+
+  it("replaces each snapshot transport with the live variant of the same kind", async () => {
+    const snapshotPath = writeSnapshot(multiTransportSnapshotDocument());
+    const events = await collect(
+      fanOutSearch({
+        candidates: [{ name: "Сочи" }],
+        query,
+        client: successfulClient(diverseTransport),
+        snapshotPath,
+      }),
+    );
+    const cards = events.filter((event) => event.type === "card");
+    const snapshotCards = cards.filter(({ source }) => source === "snapshot");
+    const liveCards = cards.filter(({ source }) => source === "live");
+
+    expect(snapshotCards).toHaveLength(2);
+    expect(liveCards).toHaveLength(2);
+    expect(liveCards.map((event) => event.update)).toEqual([
+      "replace",
+      "replace",
+    ]);
+    expect(liveCards.map((event) => event.replacesEventId)).toEqual(
+      snapshotCards.map(({ eventId }) => eventId),
+    );
+    expect(events.at(-1)).toMatchObject({
+      type: "done",
+      pool: [
+        { source: "live", transport: { transport: "railway" } },
+        { source: "live", transport: { transport: "avia" } },
+      ],
     });
   });
 
@@ -292,7 +446,7 @@ describe("snapshot search", () => {
       filePath: snapshotPath,
       now: new Date("2026-08-05T10:00:00.000Z"),
       staleAfterMs: 24 * 60 * 60 * 1_000,
-    }).getCard("Москва", "Сочи");
+    }).getCards("Москва", "Сочи")[0];
 
     expect(card).toMatchObject({
       source: "snapshot",
@@ -346,11 +500,37 @@ function snapshotDocument(builtAt = "2026-08-05T10:00:00.000Z") {
   };
 }
 
-function successfulClient(): SearchClient {
+function multiTransportSnapshotDocument() {
+  const legacy = snapshotDocument();
+  const { transport, ...entry } = legacy.entries[0];
+  return {
+    schemaVersion: 2,
+    entries: [
+      {
+        ...entry,
+        adults: 2,
+        transports: [
+          transport,
+          {
+            ...transport,
+            offer_id: "snapshot-flight",
+            transport: "avia",
+            price: { amount: 12_000, currency: "RUB" },
+            duration_min: 120,
+          },
+        ],
+      },
+    ],
+  };
+}
+
+function successfulClient(
+  transportSearch: TransportSearchDto = transport,
+): SearchClient {
   return {
     callTool: vi.fn<SearchClient["callTool"]>(async ({ name }) => ({
       status: "success",
-      data: name === "search_hotels" ? hotel : transport,
+      data: name === "search_hotels" ? hotel : transportSearch,
       attempts: 1,
     } satisfies McpCallOutcome)),
   };
