@@ -15,9 +15,11 @@ export {
   DEFAULT_WEIGHTS,
   FEATURE_NAMES,
   extractFeatures,
+  featureSpreads,
   type FeatureName,
   type FeatureVector,
 } from "./features";
+export { summarizePreferences } from "./preferences";
 export {
   RANKING_STATE_VERSION,
   rankableCardId,

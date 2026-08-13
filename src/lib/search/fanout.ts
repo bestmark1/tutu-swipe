@@ -1,3 +1,4 @@
+import type { LocationType } from "../discovery/catalog";
 import type { DestinationCandidate } from "../discovery/select";
 import type { DiscoveryQuery } from "../discovery/schema";
 import {
@@ -41,7 +42,9 @@ export interface SearchClient {
 }
 
 export interface FanOutSearchOptions {
-  candidates: readonly Pick<DestinationCandidate, "name">[];
+  candidates: readonly (Pick<DestinationCandidate, "name"> & {
+    locationTypes?: readonly LocationType[];
+  })[];
   query: DiscoveryQuery;
   client?: SearchClient;
   snapshotPath?: string;
@@ -207,7 +210,7 @@ export async function* fanOutSearch(
       const pending = searchCandidate(
         client,
         options.query,
-        candidate.name,
+        candidate,
         budget,
         requestSignal,
         hotelVariantCount,
@@ -375,12 +378,16 @@ function matchSnapshotSlots(
 async function searchCandidate(
   client: SearchClient,
   query: DiscoveryQuery,
-  destination: string,
+  candidate: Pick<DestinationCandidate, "name"> & {
+    locationTypes?: readonly LocationType[];
+  },
   requestBudget: SearchBudget,
   signal: AbortSignal,
   hotelVariantCount: number,
   hotelPage: number,
 ): Promise<CandidateResult> {
+  const destination = candidate.name;
+  const locationType = candidate.locationTypes?.join(" ");
   const candidateStartedAt = performance.now();
   const candidateBudgetMs = requestBudget.candidateMs(candidateStartedAt);
   if (candidateBudgetMs <= 0 || signal.aborted) {
@@ -474,7 +481,7 @@ async function searchCandidate(
     const built = buildTripCard(
       transportSearch,
       { ...hotelSearch, hotels: [hotel] },
-      { adults: query.travellers.adults },
+      { adults: query.travellers.adults, locationType },
     );
     if (built.status !== "built") continue;
     cards.push({ ...built.card, destination });
@@ -491,7 +498,7 @@ async function searchCandidate(
     const built = buildTripCard(
       { ...transportSearch, variants: [alternative] },
       { ...hotelSearch, hotels: hotelSearch.hotels.slice(0, 1) },
-      { adults: query.travellers.adults },
+      { adults: query.travellers.adults, locationType },
     );
     if (built.status === "built") cards.push({ ...built.card, destination });
   }

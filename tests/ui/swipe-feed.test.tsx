@@ -137,12 +137,18 @@ function sessionClient(): SwipeSessionClient {
     createSession: vi.fn(async () => session()),
     addReaction: vi.fn(async (signed, reaction) => ({
       session: session([...signed.state.reactions, reaction]),
-      feed: { order: [], excludedCities: [], refillRequested: false },
+      feed: {
+        order: [],
+        excludedCities: [],
+        refillRequested: false,
+        preferenceSummary: [],
+      },
     })),
     rankFeed: vi.fn(async () => ({
       order: [],
       excludedCities: [],
       refillRequested: false,
+      preferenceSummary: [],
     })),
     undoLastReaction: vi.fn(async (signed) =>
       session(signed.state.reactions.slice(0, -1)),
@@ -151,6 +157,57 @@ function sessionClient(): SwipeSessionClient {
 }
 
 describe("swipe feed", () => {
+  it("shows learned preferences beside the feed only after enough reactions", async () => {
+    const client = sessionClient();
+    vi.mocked(client.addReaction).mockImplementation(async (signed, reaction) => {
+      const nextSession = session([...signed.state.reactions, reaction]);
+      return {
+        session: nextSession,
+        feed: {
+          order: [],
+          excludedCities: [],
+          refillRequested: false,
+          preferenceSummary:
+            nextSession.state.reactions.length >= 3
+              ? ["предпочитаете быстрые поездки"]
+              : [],
+        },
+      };
+    });
+
+    render(
+      <SwipeFeed
+        initialQuery="поездка"
+        initialSession={session()}
+        fetcher={vi.fn(async () =>
+          responseFor([
+            appendEvent("snapshot-1", "Сочи"),
+            appendEvent("snapshot-2", "Казань"),
+            appendEvent("snapshot-3", "Самара"),
+            appendEvent("snapshot-4", "Тула"),
+            doneEvent(),
+          ]),
+        )}
+        sessionClient={client}
+        storageKey="preference-summary"
+      />,
+    );
+
+    await screen.findByRole("heading", { name: "Сочи" });
+    for (const destination of ["Казань", "Самара"]) {
+      fireEvent.click(screen.getByRole("button", { name: "Нравится" }));
+      await screen.findByRole("heading", { name: destination });
+      expect(
+        screen.queryByText("предпочитаете быстрые поездки"),
+      ).not.toBeInTheDocument();
+    }
+
+    fireEvent.click(screen.getByRole("button", { name: "Нравится" }));
+    expect(
+      await screen.findByText("предпочитаете быстрые поездки"),
+    ).toBeVisible();
+  });
+
   it("AC8: renders the first card before the stream completes", async () => {
     let controller: ReadableStreamDefaultController<Uint8Array>;
     const stream = new ReadableStream<Uint8Array>({
@@ -769,7 +826,12 @@ describe("swipe feed", () => {
     expect(client.addReaction).toHaveBeenCalledOnce();
     resolveReaction({
       session: session([vi.mocked(client.addReaction).mock.calls[0][1]]),
-      feed: { order: [], excludedCities: [], refillRequested: false },
+      feed: {
+        order: [],
+        excludedCities: [],
+        refillRequested: false,
+        preferenceSummary: [],
+      },
     });
     expect(await screen.findByRole("heading", { name: "Казань" })).toBeVisible();
   });
@@ -862,6 +924,7 @@ describe("swipe feed", () => {
         order: ["snapshot-3", "snapshot-2"],
         excludedCities: [],
         refillRequested: false,
+        preferenceSummary: [],
       },
     }));
     render(
@@ -897,6 +960,7 @@ describe("swipe feed", () => {
         order: ["snapshot-3"],
         excludedCities: ["Казань"],
         refillRequested: false,
+        preferenceSummary: [],
       },
     }));
     render(
@@ -931,6 +995,7 @@ describe("swipe feed", () => {
         order: ["snapshot-3"],
         excludedCities: ["Казань"],
         refillRequested: false,
+        preferenceSummary: [],
       },
     }));
     const fetcher = vi
@@ -997,6 +1062,7 @@ describe("swipe feed", () => {
         order: ["new-2", "new-1"],
         excludedCities: [],
         refillRequested: false,
+        preferenceSummary: [],
       })),
     };
     const fetcher = vi

@@ -138,6 +138,7 @@ describe("snapshot search", () => {
     expect(cards).toHaveLength(1);
     expect(cards[0]).toMatchObject({
       destination: "Сочи",
+      locationType: "sea mountains",
       source: "snapshot",
       snapshotBuiltAt: builtAt,
       priceAgeMs: 2 * 60 * 60 * 1_000,

@@ -1,4 +1,9 @@
-import { createRanker, extractFeatures } from "../ranking";
+import {
+  createRanker,
+  extractFeatures,
+  featureSpreads,
+  summarizePreferences,
+} from "../ranking";
 import type { RankableCard, RankingContext } from "../ranking";
 import {
   applySessionReaction,
@@ -22,6 +27,8 @@ export interface RankedFeed {
   excludedCities: string[];
   /** Модель просит добрать новые направления. */
   refillRequested: boolean;
+  /** Короткая выжимка устойчивых предпочтений без чисел и внутренних терминов. */
+  preferenceSummary: string[];
 }
 
 export interface ReactionOutcome {
@@ -95,6 +102,11 @@ export function addSignedSwipeReaction(
         .filter((id): id is string => id !== undefined),
       excludedCities: [...ranker.getState().excludedCities],
       refillRequested: ranker.shouldRefill(),
+      preferenceSummary: summarizePreferences(
+        ranker.getWeights(),
+        preferenceReactionCount(applied.session.state.reactions, cardsById),
+        featureSpreads(pool, context),
+      ),
     },
   };
 }
@@ -120,6 +132,11 @@ export function rankSignedSwipeFeed(
       .filter((id): id is string => id !== undefined),
     excludedCities: [...ranker.getState().excludedCities],
     refillRequested: ranker.shouldRefill(),
+    preferenceSummary: summarizePreferences(
+      ranker.getWeights(),
+      preferenceReactionCount(verified.state.reactions, cardsById),
+      featureSpreads(pool, context),
+    ),
   };
 }
 
@@ -170,6 +187,8 @@ function asRankableCards(value: unknown): RankableCard[] {
     return (
       typeof candidate.id === "string" &&
       typeof candidate.destination === "string" &&
+      (candidate.locationType === undefined ||
+        typeof candidate.locationType === "string") &&
       typeof candidate.price?.total?.amount === "number" &&
       Number.isFinite(candidate.price.total.amount) &&
       typeof candidate.transport?.transport === "string" &&
@@ -191,6 +210,19 @@ function withoutLearningSignal(reaction: SessionReaction): SessionReaction {
   return reaction.type === "like"
     ? { ...base, type: "like" }
     : { ...base, type: "dislike", reason: reaction.reason };
+}
+
+/** Считает только реакции, которые действительно обновили веса признаков. */
+function preferenceReactionCount(
+  journal: readonly SessionReaction[],
+  cardsById: ReadonlyMap<string, RankableCard>,
+): number {
+  return journal.filter(
+    (reaction) =>
+      reaction.learningSignal !== undefined ||
+      (cardsById.has(reaction.cardId) &&
+        !(reaction.type === "dislike" && reaction.reason === "wrong_city")),
+  ).length;
 }
 
 /** Потолок цены для признака доступности: самая дорогая карточка пула. */

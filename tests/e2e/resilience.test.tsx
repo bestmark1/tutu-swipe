@@ -346,13 +346,19 @@ function sessionClient(): SwipeSessionClient {
       if (!applied.ok) throw new Error(applied.error.code);
       return {
         session: applied.signedState,
-        feed: { order: [], excludedCities: [], refillRequested: false },
+        feed: {
+          order: [],
+          excludedCities: [],
+          refillRequested: false,
+          preferenceSummary: [],
+        },
       };
     }),
     rankFeed: vi.fn(async () => ({
       order: [],
       excludedCities: [],
       refillRequested: false,
+      preferenceSummary: [],
     })),
     undoLastReaction: vi.fn(async (submission) =>
       signedSession(submission.state.reactions.slice(0, -1)),

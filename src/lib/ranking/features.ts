@@ -35,6 +35,9 @@ export function extractFeatures(
   return [
     clamp(1 - card.price.total.amount / context.budget),
     clamp(1 - card.transport.durationMinutes / MINUTES_PER_DAY),
+    // На текущих направлениях MCP отдаёт только прямые маршруты, поэтому
+    // признак намеренно остаётся константным. Это ограничение данных, а не
+    // потерянное поле; когда появятся маршруты с пересадками, код уже готов.
     1 / (1 + transferCount(card)),
     transportSignal(transport, ["avia", "air", "plane", "самол"]),
     transportSignal(transport, ["rail", "train", "etrain", "поезд"]),
@@ -43,6 +46,18 @@ export function extractFeatures(
     urbanLocation,
     leisureLocation,
   ];
+}
+
+export function featureSpreads(
+  cards: readonly RankableCard[],
+  context: RankingContext,
+): number[] {
+  if (cards.length < 2) return FEATURE_NAMES.map(() => 0);
+  const vectors = cards.map((card) => extractFeatures(card, context));
+  return FEATURE_NAMES.map((_, index) => {
+    const values = vectors.map((features) => features[index] ?? 0);
+    return Math.max(...values) - Math.min(...values);
+  });
 }
 
 export function dotProduct(
@@ -84,10 +99,12 @@ function locationSignals(locationType: string | undefined): [number, number] {
   );
   const leisure = [
     "resort",
+    "sea",
     "beach",
     "coast",
     "nature",
     "mountain",
+    "treatment",
     "курорт",
     "пляж",
     "природ",

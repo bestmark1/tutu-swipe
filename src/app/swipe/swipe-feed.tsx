@@ -70,6 +70,8 @@ interface FeedState {
   failedDestinations: string[];
   page: number;
   excludedDestinations: string[];
+  /** Последняя серверная выжимка предпочтений для чипов над карточкой. */
+  preferenceSummary: string[];
   lastRefillAtPosition?: number;
   terminal?: TerminalEvent["type"];
   /** Поля, которых не было во фразе: показываются чипами «подставлено». */
@@ -134,6 +136,7 @@ export function SwipeFeed({
     failedDestinations: [],
     page: 0,
     excludedDestinations: [],
+    preferenceSummary: [],
   };
   const [feed, setFeed] = useState<FeedState>(initialState);
   const [input, setInput] = useState(initialQuery);
@@ -227,6 +230,7 @@ export function SwipeFeed({
                 commit({
                   ...latest,
                   cards: reorderUpcoming(latest.cards, latest.position, ranked),
+                  preferenceSummary: ranked.preferenceSummary,
                 });
               }
             } catch {
@@ -314,6 +318,7 @@ export function SwipeFeed({
       failedDestinations: [],
       page: 0,
       excludedDestinations: [],
+      preferenceSummary: feedRef.current.preferenceSummary,
     });
   }
 
@@ -359,6 +364,7 @@ export function SwipeFeed({
           ...latest.excludedDestinations,
           ...outcome.feed.excludedCities,
         ]),
+        preferenceSummary: outcome.feed.preferenceSummary,
       });
     } catch {
       setReactionError(true);
@@ -383,11 +389,18 @@ export function SwipeFeed({
     setReactionError(false);
     try {
       const nextSession = await sessionClient.undoLastReaction(current.session);
+      const nextPosition = Math.max(0, current.position - 1);
+      const ranked = await sessionClient.rankFeed(
+        nextSession,
+        rankableCards(current.cards, 0, 40),
+      );
       const latest = feedRef.current;
       commit({
         ...latest,
         session: nextSession,
-        position: Math.max(0, latest.position - 1),
+        position: nextPosition,
+        cards: reorderUpcoming(latest.cards, nextPosition, ranked),
+        preferenceSummary: ranked.preferenceSummary,
       });
     } catch {
       setReactionError(true);
@@ -421,6 +434,7 @@ export function SwipeFeed({
       failedDestinations: [],
       page: 0,
       excludedDestinations: [],
+      preferenceSummary: feedRef.current.preferenceSummary,
     });
   }
 
@@ -457,6 +471,7 @@ export function SwipeFeed({
 
             <UnsupportedDestinations names={feed.unknownDestinations} />
             <AssumedChips chips={assumedChips} onEdit={startNewSearch} />
+            <PreferenceChips preferences={feed.preferenceSummary} />
             <ConnectionMessage connection={connection} hasCards={feed.cards.length > 0} />
             <PartialFailure destinations={feed.failedDestinations} />
 
@@ -865,6 +880,28 @@ function AssumedChips({
   );
 }
 
+function PreferenceChips({ preferences }: { preferences: string[] }) {
+  if (preferences.length === 0) return null;
+  return (
+    <div
+      className="mt-3 flex flex-wrap items-center gap-2"
+      aria-label="Учтённые предпочтения"
+    >
+      <span className="text-xs font-medium text-ink-muted">
+        Учли по реакциям:
+      </span>
+      {preferences.map((preference) => (
+        <span
+          key={preference}
+          className="rounded-sm bg-action-soft px-3 py-1.5 text-sm font-medium text-ink"
+        >
+          {preference}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 async function consumeStream(
   stream: ReadableStream<Uint8Array>,
   onEvent: (event: SearchStreamEvent) => void,
@@ -1048,6 +1085,9 @@ function isStoredFeed(value: unknown): value is StoredFeedState {
     !value.receivedEventIds.every((id) => typeof id === "string") ||
     !Array.isArray(value.failedDestinations) ||
     !value.failedDestinations.every((name) => typeof name === "string") ||
+    (value.preferenceSummary !== undefined &&
+      (!Array.isArray(value.preferenceSummary) ||
+        !value.preferenceSummary.every((item) => typeof item === "string"))) ||
     (value.page !== undefined &&
       (!Number.isSafeInteger(value.page) || Number(value.page) < 0)) ||
     (value.excludedDestinations !== undefined &&
@@ -1064,6 +1104,7 @@ function isStoredFeed(value: unknown): value is StoredFeedState {
   }
   if (value.page === undefined) value.page = 0;
   if (value.excludedDestinations === undefined) value.excludedDestinations = [];
+  if (value.preferenceSummary === undefined) value.preferenceSummary = [];
   return value.cards.every(
     (item) =>
       isRecord(item) &&

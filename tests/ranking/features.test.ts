@@ -47,6 +47,27 @@ describe("first-pass ranking features", () => {
     );
   });
 
+  it.each([
+    ["city", 1, 0],
+    ["sea", 0, 1],
+    ["treatment nature", 0, 1],
+  ])(
+    "maps the catalog location type %s to urban and leisure features",
+    (locationType, expectedUrban, expectedLeisure) => {
+      const features = extractFeatures(
+        { ...card(), locationType },
+        { budget: 100_000 },
+      );
+
+      expect(features[FEATURE_NAMES.indexOf("urbanLocation")]).toBe(
+        expectedUrban,
+      );
+      expect(features[FEATURE_NAMES.indexOf("leisureLocation")]).toBe(
+        expectedLeisure,
+      );
+    },
+  );
+
   it("selects either implementation through one configuration entry point", () => {
     expect(createRanker({ strategy: "bayesian", seed: 1 }).kind).toBe(
       "bayesian",

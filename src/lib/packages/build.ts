@@ -95,6 +95,8 @@ export interface TripCard<
   price: TripCardPrice;
   warnings: TripCardWarning[];
   selectedDestination?: SelectedDestination;
+  /** Каталожные типы места, объединённые для признаков первого ранжирования. */
+  locationType?: string;
 }
 
 const EARLIEST_CONVENIENT_TIME_HOUR = 8;
@@ -126,6 +128,7 @@ export type BuildTripCardResult<
 
 export interface BuildTripCardOptions {
   adults: number;
+  locationType?: string;
 }
 
 export function buildTripCard<
@@ -181,6 +184,9 @@ export function buildTripCard<
       stay: hotelSearch.stay,
       warnings: consistencyWarnings(transport),
       selectedDestination: selectedDestination(transportSearch.meta?.to),
+      ...(options.locationType === undefined
+        ? {}
+        : { locationType: options.locationType }),
       price: {
         total: {
           amount: addPriceAmounts(

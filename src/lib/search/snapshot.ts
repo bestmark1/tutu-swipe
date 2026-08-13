@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
+import { fullDestinationCatalog } from "../discovery/catalog";
 import type {
   HotelOfferDto,
   TransportLegDto,
@@ -113,11 +114,14 @@ function parseEntry(
   const stay = parseStay(entry.stay);
   const adults = snapshotAdults(entry.adults);
   const priceAgeMs = Math.max(0, now.getTime() - builtAtMs);
+  const locationType = fullDestinationCatalog
+    .find(({ name }) => normalizeCity(name) === normalizeCity(destination))
+    ?.locationTypes.join(" ");
   const cards = transports.map((transport): SnapshotSearchCard => {
     const built = buildTripCard(
       { variants: [transport] },
       { hotels: [hotel], stay },
-      { adults },
+      { adults, locationType },
     );
     if (built.status !== "built") {
       throw new TypeError(`snapshot card cannot be built: ${built.reason}`);

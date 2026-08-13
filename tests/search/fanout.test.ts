@@ -12,6 +12,7 @@ import {
   type SearchClient,
   type SearchEvent,
 } from "@/lib/search";
+import { extractFeatures, FEATURE_NAMES } from "@/lib/ranking";
 
 const query: DiscoveryQuery = {
   origin: "Москва",
@@ -76,6 +77,23 @@ async function collect(stream: AsyncIterable<SearchEvent>) {
 }
 
 describe("fanOutSearch", () => {
+  it("carries the candidate location type into the card and ranking features", async () => {
+    const events = await collect(
+      fanOutSearch({
+        candidates: [{ name: "Сочи", locationTypes: ["sea", "mountains"] }],
+        query,
+        client: { callTool: vi.fn(async ({ name }) => success(name)) },
+        snapshotPath: "/missing-snapshot.json",
+      }),
+    );
+    const cardEvent = events.find((event) => event.type === "card");
+
+    expect(cardEvent?.card.locationType).toBe("sea mountains");
+    const features = extractFeatures(cardEvent!.card, { budget: 60_000 });
+    expect(features[FEATURE_NAMES.indexOf("urbanLocation")]).toBe(0);
+    expect(features[FEATURE_NAMES.indexOf("leisureLocation")]).toBe(1);
+  });
+
   it("AC9: yields five cards and three candidate_error events when three of eight candidates miss their deadline", async () => {
     vi.useFakeTimers();
     try {
