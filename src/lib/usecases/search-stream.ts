@@ -5,7 +5,7 @@ import type {
   DiscoveryQuery,
   DiscoveryRequiredField,
 } from "../discovery/schema";
-import { selectDestinations } from "../discovery/select";
+import { selectDestinationPage } from "../discovery/select";
 import {
   fanOutSearch,
   type FanOutSearchEvent,
@@ -53,6 +53,8 @@ export interface PrepareSearchStreamOptions {
   fallback?: ParseTravelQueryOptions["fallback"];
   today?: Date;
   fanOut?: Omit<FanOutSearchOptions, "candidates" | "query">;
+  page?: number;
+  excludedDestinations?: readonly string[];
 }
 
 export async function prepareSearchStream(
@@ -65,6 +67,11 @@ export async function prepareSearchStream(
   });
   if (parsed.status !== "success") return parsed;
 
+  const destinationPage = selectDestinationPage(parsed.query, {
+    page: options.page ?? 0,
+    excludedDestinations: options.excludedDestinations,
+  });
+
   return {
     status: "ready",
     query: parsed.query,
@@ -74,7 +81,8 @@ export async function prepareSearchStream(
       : {}),
     events: fanOutSearch({
       ...options.fanOut,
-      candidates: selectDestinations(parsed.query),
+      candidates: destinationPage.candidates,
+      hotelPage: destinationPage.hotelPage,
       query: parsed.query,
     }),
   };

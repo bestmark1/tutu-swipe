@@ -53,6 +53,11 @@ export interface Ranker<TState extends CommonRankingState = CommonRankingState> 
     card: RankableCard,
     context: RankingContext,
   ): RankingReactionResult;
+  reactFeatures(
+    reaction: SessionReaction,
+    features: readonly number[],
+    destination: string,
+  ): RankingReactionResult;
   getWeights(): readonly number[];
   getState(): TState;
   serialize(): string;

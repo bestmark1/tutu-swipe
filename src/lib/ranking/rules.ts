@@ -9,7 +9,7 @@ import {
   type RankingContext,
   type RankingReactionResult,
 } from "./interface";
-import { prepareReaction, rankCards } from "./shared";
+import { prepareReaction, prepareReactionFeatures, rankCards } from "./shared";
 
 export interface RuleRankingState extends CommonRankingState {
   kind: "rules";
@@ -47,6 +47,27 @@ class RuleRanker implements Ranker<RuleRankingState> {
     context: RankingContext,
   ): RankingReactionResult {
     const prepared = prepareReaction(this.state, reaction, card, context);
+    return this.applyPrepared(reaction, prepared);
+  }
+
+  reactFeatures(
+    reaction: SessionReaction,
+    features: readonly number[],
+    destination: string,
+  ): RankingReactionResult {
+    const prepared = prepareReactionFeatures(
+      this.state,
+      reaction,
+      features,
+      destination,
+    );
+    return this.applyPrepared(reaction, prepared);
+  }
+
+  private applyPrepared(
+    reaction: SessionReaction,
+    prepared: ReturnType<typeof prepareReaction>,
+  ): RankingReactionResult {
     if (prepared.duplicate) return prepared.result;
 
     if (reaction.type === "like") {

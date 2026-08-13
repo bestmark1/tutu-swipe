@@ -19,14 +19,17 @@ vi.mock("@/lib/usecases/search-stream", () => ({
 
 import { POST } from "@/app/api/search/route";
 
-function request(receivedEventIds: string[] = []) {
+function request(
+  receivedEventIds: string[] = [],
+  continuation: { page?: number; excludedDestinations?: string[] } = {},
+) {
   return new Request("http://localhost/api/search", {
     method: "POST",
     headers: {
       accept: "application/x-ndjson",
       "content-type": "application/json",
     },
-    body: JSON.stringify({ input: "поездка", receivedEventIds }),
+    body: JSON.stringify({ input: "поездка", receivedEventIds, ...continuation }),
   });
 }
 
@@ -140,5 +143,33 @@ describe("streaming POST /api/search", () => {
 
     expect(body).not.toContain('"type":"query"');
     expect(body).toContain("snapshot-1");
+  });
+
+  it("F27: reuses the route for a filtered continuation with page-scoped IDs", async () => {
+    async function* events(): AsyncGenerator<FanOutSearchEvent> {
+      yield cardEvent("card-1");
+      yield { type: "done", pool: [] };
+    }
+    prepareSearchStreamMock.mockResolvedValue({
+      status: "ready",
+      query: {} as never,
+      assumedFields: [],
+      events: events(),
+    } satisfies SearchStreamPreparation);
+
+    const response = await POST(
+      request(["query"], { page: 2, excludedDestinations: ["Казань"] }),
+    );
+    const body = await response.text();
+
+    expect(prepareSearchStreamMock).toHaveBeenCalledWith(
+      "поездка",
+      expect.objectContaining({
+        page: 2,
+        excludedDestinations: ["Казань"],
+      }),
+    );
+    expect(body).toContain('"eventId":"refill-2:card-1"');
+    expect(body).toContain('"eventId":"refill-2:done"');
   });
 });

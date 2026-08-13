@@ -33,6 +33,12 @@ export interface DestinationCandidate extends Destination {
   isFallback: boolean;
 }
 
+export interface DestinationPage {
+  candidates: DestinationCandidate[];
+  /** Страница жилья для текущего прохода по направлениям. */
+  hotelPage: number;
+}
+
 interface ScoredDestination {
   destination: Destination;
   catalogIndex: number;
@@ -92,6 +98,58 @@ export function selectDestinations(
   return regularSelection;
 }
 
+/**
+ * Разбивает каталог на последовательные порции для дозабора. После полного
+ * прохода по направлениям начинает следующий круг с новой страницей жилья.
+ * Нулевая страница строго совпадает с обычным первым подбором.
+ */
+export function selectDestinationPage(
+  query: DiscoveryQuery,
+  {
+    page,
+    excludedDestinations = [],
+  }: {
+    page: number;
+    excludedDestinations?: readonly string[];
+  },
+): DestinationPage {
+  if (!Number.isSafeInteger(page) || page < 0) {
+    throw new TypeError("page must be a non-negative safe integer");
+  }
+
+  const excluded = new Set(excludedDestinations.map(normalizeCity));
+  const selected = selectDestinations(query);
+  const initial = selected.filter(
+    ({ name }) => !excluded.has(normalizeCity(name)),
+  );
+  const initialNames = new Set(initial.map(({ name }) => normalizeCity(name)));
+
+  // Для явно названных направлений ассортимент расширяется жильём, а не
+  // подмешиванием других городов: каждый дозабор берёт следующую hotel page.
+  const named = new Set(query.namedDestinations?.map(normalizeCity) ?? []);
+  if (selected.some(({ name }) => named.has(normalizeCity(name)))) {
+    return { candidates: initial, hotelPage: page + 1 };
+  }
+
+  const ordered = orderedRegularCandidates(query).filter(
+    ({ name }) => !excluded.has(normalizeCity(name)),
+  );
+  const remaining = ordered.filter(
+    ({ name }) => !initialNames.has(normalizeCity(name)),
+  );
+  const batches = [
+    initial,
+    ...chunk(remaining, MAX_CANDIDATES),
+  ].filter((batch) => batch.length > 0);
+  if (batches.length === 0) return { candidates: [], hotelPage: 1 };
+
+  const batchIndex = page % batches.length;
+  return {
+    candidates: batches[batchIndex]!,
+    hotelPage: Math.floor(page / batches.length) + 1,
+  };
+}
+
 function selectScoredDestinations(
   scored: ScoredDestination[],
   query: DiscoveryQuery,
@@ -148,6 +206,78 @@ function selectScoredDestinations(
     ...categoryMatches.map((candidate) => toCandidate(candidate, false)),
     ...categoryFallbacks.map((candidate) => toCandidate(candidate, true)),
   ];
+}
+
+function orderedRegularCandidates(query: DiscoveryQuery): DestinationCandidate[] {
+  const travelMonths = monthsInWindow(
+    query.dateWindow.startDate,
+    query.dateWindow.nights,
+  );
+  const scored = destinationCatalog
+    .map((destination, catalogIndex): ScoredDestination => ({
+      destination,
+      catalogIndex,
+      aboveBudget:
+        query.budget !== undefined &&
+        PRICE_CLASS_LIMITS[destination.priceClass] > query.budget.amount,
+      score: destinationScore(destination, query, travelMonths),
+    }))
+    .filter(
+      ({ destination }) =>
+        normalizeCity(destination.name) !== normalizeCity(query.origin),
+    );
+
+  const affordable = scored.filter(({ aboveBudget }) => !aboveBudget);
+  const noneAffordable = affordable.length === 0;
+  const pool = affordable.length >= MIN_CANDIDATES ? affordable : scored;
+  pool.sort(compareScored(noneAffordable));
+  const selectionPool = noneAffordable
+    ? pool.filter(
+        ({ destination }) =>
+          destination.priceClass === pool[0]?.destination.priceClass,
+      )
+    : pool;
+  const matching = selectionPool.filter(({ destination }) =>
+    matchesRequestedCategory(destination, query.vibeTags),
+  );
+  const fallback = selectionPool.filter(
+    ({ destination }) =>
+      !matchesRequestedCategory(destination, query.vibeTags),
+  );
+  return [
+    ...matching.map((candidate) => toCandidate(candidate, false)),
+    ...fallback.map((candidate) => toCandidate(candidate, true)),
+  ];
+}
+
+function compareScored(noneAffordable: boolean) {
+  return (left: ScoredDestination, right: ScoredDestination): number => {
+    if (noneAffordable) {
+      const priceDifference =
+        PRICE_CLASS_ORDER[left.destination.priceClass] -
+        PRICE_CLASS_ORDER[right.destination.priceClass];
+      if (priceDifference !== 0) return priceDifference;
+    } else if (left.aboveBudget !== right.aboveBudget) {
+      return left.aboveBudget ? 1 : -1;
+    }
+
+    const scoreDifference = right.score - left.score;
+    if (scoreDifference !== 0) return scoreDifference;
+    const priceDifference =
+      PRICE_CLASS_ORDER[left.destination.priceClass] -
+      PRICE_CLASS_ORDER[right.destination.priceClass];
+    return priceDifference !== 0
+      ? priceDifference
+      : left.catalogIndex - right.catalogIndex;
+  };
+}
+
+function chunk<T>(items: readonly T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+  return chunks;
 }
 
 function toCandidate(

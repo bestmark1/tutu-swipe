@@ -139,6 +139,11 @@ function sessionClient(): SwipeSessionClient {
       session: session([...signed.state.reactions, reaction]),
       feed: { order: [], excludedCities: [], refillRequested: false },
     })),
+    rankFeed: vi.fn(async () => ({
+      order: [],
+      excludedCities: [],
+      refillRequested: false,
+    })),
     undoLastReaction: vi.fn(async (signed) =>
       session(signed.state.reactions.slice(0, -1)),
     ),
@@ -514,7 +519,14 @@ describe("swipe feed", () => {
       responseFor([
         appendEvent("snapshot-1", "Сочи"),
         appendEvent("snapshot-2", "Казань"),
-        doneEvent([card("Сочи"), card("Казань")]),
+        appendEvent("snapshot-3", "Тула"),
+        appendEvent("snapshot-4", "Самара"),
+        doneEvent([
+          card("Сочи"),
+          card("Казань"),
+          card("Тула"),
+          card("Самара"),
+        ]),
       ]),
     );
     const firstRender = render(
@@ -835,6 +847,123 @@ describe("swipe feed", () => {
 
     expect(await screen.findByRole("heading", { name: "Туапсе" })).toBeVisible();
     expect(screen.getByText("2 варианта в ленте")).toBeVisible();
+  });
+
+  it("F27: near the end refills without duplicate cards or excluded cities", async () => {
+    const client = sessionClient();
+    vi.mocked(client.addReaction).mockImplementationOnce(async (signed, reaction) => ({
+      session: session([...signed.state.reactions, reaction]),
+      feed: {
+        order: ["snapshot-3"],
+        excludedCities: ["Казань"],
+        refillRequested: false,
+      },
+    }));
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        responseFor([
+          appendEvent("snapshot-1", "Сочи"),
+          appendEvent("snapshot-2", "Казань"),
+          appendEvent("snapshot-3", "Тула"),
+          doneEvent([card("Сочи"), card("Казань"), card("Тула")]),
+        ]),
+      )
+      .mockImplementationOnce(async (_input, init) => {
+        const body = JSON.parse(String(init?.body)) as {
+          page: number;
+          excludedDestinations: string[];
+        };
+        expect(body).toMatchObject({
+          page: 1,
+          excludedDestinations: ["Казань"],
+        });
+        return responseFor([
+          appendEvent("refill-1-duplicate", "Тула"),
+          appendEvent("refill-1-excluded", "Казань"),
+          appendEvent("refill-1-new", "Самара"),
+          { type: "done", eventId: "refill-1-done", pool: [] },
+        ]);
+      });
+
+    render(
+      <SwipeFeed
+        initialQuery="поездка"
+        initialSession={session()}
+        fetcher={fetcher}
+        sessionClient={client}
+        storageKey="refill"
+      />,
+    );
+
+    await screen.findByRole("heading", { name: "Сочи" });
+    fireEvent.click(screen.getByRole("button", { name: "Не нравится" }));
+
+    expect(await screen.findByRole("heading", { name: "Тула" })).toBeVisible();
+    await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText("3 варианта в ленте")).toBeVisible();
+    expect(screen.queryByRole("heading", { name: "Казань" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Нравится" }));
+    expect(await screen.findByRole("heading", { name: "Самара" })).toBeVisible();
+  });
+
+  it("F27: a new search keeps the learned session and applies it to new cards", async () => {
+    const learned = session([
+      {
+        id: "old-reaction",
+        cardId: "old-card",
+        occurredAt: "2026-08-06T09:00:00.000Z",
+        type: "like",
+      },
+    ]);
+    const client = {
+      ...sessionClient(),
+      rankFeed: vi.fn(async () => ({
+        order: ["new-2", "new-1"],
+        excludedCities: [],
+        refillRequested: false,
+      })),
+    };
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        responseFor([appendEvent("old-card", "Сочи"), doneEvent()]),
+      )
+      .mockResolvedValueOnce(
+        responseFor([
+          appendEvent("new-1", "Казань"),
+          appendEvent("new-2", "Самара"),
+          { type: "done", eventId: "new-done", pool: [] },
+        ]),
+      );
+
+    render(
+      <SwipeFeed
+        initialQuery="старый поиск"
+        initialSession={learned}
+        fetcher={fetcher}
+        sessionClient={client}
+        storageKey="new-search-learning"
+      />,
+    );
+
+    await screen.findByRole("heading", { name: "Сочи" });
+    fireEvent.click(screen.getByRole("button", { name: "Новый поиск" }));
+    expect(screen.getByText("Предпочтения сохранены — учтём их в новом поиске.")).toBeVisible();
+    fireEvent.change(screen.getByLabelText("Опишите поездку"), {
+      target: { value: "новый поиск" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Подобрать поездки" }));
+
+    expect(await screen.findByRole("heading", { name: "Самара" })).toBeVisible();
+    expect(client.rankFeed).toHaveBeenCalledWith(
+      learned,
+      expect.arrayContaining([
+        expect.objectContaining({ id: "new-1", destination: "Казань" }),
+        expect.objectContaining({ id: "new-2", destination: "Самара" }),
+      ]),
+    );
   });
 
   it("F25: предупреждает, когда названное направление дороже бюджета", async () => {

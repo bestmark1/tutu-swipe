@@ -8,6 +8,7 @@ import {
   applySessionReaction,
   createSessionState,
   serializeSessionState,
+  sessionStateByteLength,
   signSessionState,
   verifySessionState,
   type SessionReaction,
@@ -204,6 +205,24 @@ describe("signed session state", () => {
       ok: false,
       error: { code: SESSION_ERROR_CODES.STATE_TOO_LARGE },
     });
+  });
+
+  it("F27: one hundred portable learning signals fit the signed session limit", () => {
+    const state = {
+      ...createSessionState({ sessionId: "portable-profile", createdAt: CREATED_AT }),
+      reactions: Array.from({ length: MAX_SESSION_REACTIONS }, (_, index) => ({
+        ...reaction(index),
+        learningSignal: {
+          destination: `Город ${index}`,
+          features: [0.1234, 0.5678, 1, -0.25, 1, 0.8, 0.91, 0.25, 0.25],
+        },
+      })),
+    };
+
+    expect(sessionStateByteLength(state)).toBeLessThanOrEqual(
+      MAX_SESSION_STATE_BYTES,
+    );
+    expect(() => signSessionState(state, SECRET)).not.toThrow();
   });
 
   it("rejects an incompatible format version with a clear code", () => {

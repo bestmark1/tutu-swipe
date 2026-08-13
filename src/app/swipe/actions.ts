@@ -8,6 +8,7 @@ import type {
 import {
   addSignedSwipeReaction,
   createSignedSwipeSession,
+  rankSignedSwipeFeed,
   undoSignedSwipeReaction,
   type ReactionOutcome,
 } from "@/lib/usecases/react";
@@ -33,4 +34,11 @@ export async function undoSwipeReaction(
   session: SignedSessionState,
 ): Promise<SignedSessionState> {
   return undoSignedSwipeReaction(session);
+}
+
+export async function rankSwipeFeed(
+  session: SignedSessionState,
+  cards: RankableCard[] = [],
+): Promise<ReactionOutcome["feed"]> {
+  return rankSignedSwipeFeed(session, cards);
 }

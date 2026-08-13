@@ -28,6 +28,7 @@ import type { SearchStreamEvent } from "@/lib/usecases/search-stream";
 import {
   addSwipeReaction,
   createSwipeSession,
+  rankSwipeFeed,
   undoSwipeReaction,
 } from "./actions";
 
@@ -36,6 +37,8 @@ const DEFAULT_QUERY =
 const DEFAULT_STORAGE_KEY = "tutu-swipe-feed";
 const DEFAULT_RECONNECT_DELAY_MS = 750;
 const SWIPE_DISTANCE_PX = 72;
+const REFILL_THRESHOLD = 2;
+const MAX_RESUME_EVENT_IDS = 256;
 
 const ASSUMED_FIELD_NAMES: readonly DiscoveryRequiredField[] = [
   "origin",
@@ -65,6 +68,9 @@ interface FeedState {
   session?: SignedSessionState;
   receivedEventIds: string[];
   failedDestinations: string[];
+  page: number;
+  excludedDestinations: string[];
+  lastRefillAtPosition?: number;
   terminal?: TerminalEvent["type"];
   /** Поля, которых не было во фразе: показываются чипами «подставлено». */
   assumedFields?: DiscoveryRequiredField[];
@@ -88,6 +94,10 @@ export interface SwipeSessionClient {
     reaction: SessionReaction,
     cards: RankableCard[],
   ): Promise<ReactionOutcome>;
+  rankFeed(
+    session: SignedSessionState,
+    cards: RankableCard[],
+  ): Promise<ReactionOutcome["feed"]>;
   undoLastReaction(session: SignedSessionState): Promise<SignedSessionState>;
 }
 
@@ -103,6 +113,7 @@ export interface SwipeFeedProps {
 const defaultSessionClient: SwipeSessionClient = {
   createSession: createSwipeSession,
   addReaction: addSwipeReaction,
+  rankFeed: rankSwipeFeed,
   undoLastReaction: undoSwipeReaction,
 };
 
@@ -121,6 +132,8 @@ export function SwipeFeed({
     session: initialSession,
     receivedEventIds: [],
     failedDestinations: [],
+    page: 0,
+    excludedDestinations: [],
   };
   const [feed, setFeed] = useState<FeedState>(initialState);
   const [input, setInput] = useState(initialQuery);
@@ -170,7 +183,11 @@ export function SwipeFeed({
             },
             body: JSON.stringify({
               input: feedRef.current.query,
-              receivedEventIds: feedRef.current.receivedEventIds,
+              receivedEventIds: feedRef.current.receivedEventIds.slice(
+                -MAX_RESUME_EVENT_IDS,
+              ),
+              page: feedRef.current.page,
+              excludedDestinations: feedRef.current.excludedDestinations,
             }),
             signal: controller.signal,
           });
@@ -185,6 +202,37 @@ export function SwipeFeed({
             response.body,
             (event) => applyStreamEvent(event, feedRef.current, commit),
           );
+          if (
+            terminalReceived &&
+            feedRef.current.session &&
+            feedRef.current.session.state.reactions.length > 0
+          ) {
+            const beforeRanking = feedRef.current;
+            const signedSession = beforeRanking.session;
+            if (!signedSession) throw new Error("Signed session disappeared");
+            try {
+              const ranked = await sessionClient.rankFeed(
+                signedSession,
+                rankableCards(
+                  beforeRanking.cards,
+                  beforeRanking.position,
+                  beforeRanking.position + 40,
+                ),
+              );
+              const latest = feedRef.current;
+              if (
+                latest.query === beforeRanking.query &&
+                latest.page === beforeRanking.page
+              ) {
+                commit({
+                  ...latest,
+                  cards: reorderUpcoming(latest.cards, latest.position, ranked),
+                });
+              }
+            } catch {
+              // Поиск уже успешен: сбой персонализации не должен скрыть карточки.
+            }
+          }
           if (!active || controller.signal.aborted || terminalReceived) {
             setConnection("idle");
             return;
@@ -204,7 +252,51 @@ export function SwipeFeed({
       active = false;
       controller.abort();
     };
-  }, [commit, feed.query, feed.terminal, fetcher, hydrated, reconnectDelayMs]);
+  }, [
+    commit,
+    feed.query,
+    feed.terminal,
+    fetcher,
+    hydrated,
+    reconnectDelayMs,
+    sessionClient,
+  ]);
+
+  useEffect(() => {
+    if (
+      !hydrated ||
+      connection !== "idle" ||
+      (feed.terminal !== "done" && feed.terminal !== "aborted") ||
+      feed.cards.length === 0 ||
+      feed.cards.length - feed.position > REFILL_THRESHOLD ||
+      feed.lastRefillAtPosition === feed.position
+    ) {
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      const current = feedRef.current;
+      if (
+        reactionPendingRef.current ||
+        current.query !== feed.query ||
+        current.page !== feed.page ||
+        current.position !== feed.position ||
+        (current.terminal !== "done" && current.terminal !== "aborted") ||
+        current.cards.length - current.position > REFILL_THRESHOLD ||
+        current.lastRefillAtPosition === current.position
+      ) {
+        return;
+      }
+      commit({
+        ...current,
+        page: current.page + 1,
+        terminal: undefined,
+        abortedReason: undefined,
+        lastRefillAtPosition: current.position,
+      });
+    }, 0);
+    return () => clearTimeout(timeout);
+  }, [commit, connection, feed, hydrated]);
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -217,9 +309,11 @@ export function SwipeFeed({
       query,
       cards: [],
       position: 0,
-      session: initialSession,
+      session: feedRef.current.session,
       receivedEventIds: [],
       failedDestinations: [],
+      page: 0,
+      excludedDestinations: [],
     });
   }
 
@@ -248,7 +342,11 @@ export function SwipeFeed({
       const outcome = await sessionClient.addReaction(
         signed,
         reaction,
-        feedRef.current.cards.map(({ eventId, card }) => ({ ...card, id: eventId })),
+        rankableCards(
+          feedRef.current.cards,
+          Math.max(0, feedRef.current.position - 8),
+          Math.max(0, feedRef.current.position - 8) + 40,
+        ),
       );
       const latest = feedRef.current;
       const nextPosition = Math.min(latest.position + 1, latest.cards.length);
@@ -257,6 +355,10 @@ export function SwipeFeed({
         session: outcome.session,
         cards: reorderUpcoming(latest.cards, nextPosition, outcome.feed),
         position: nextPosition,
+        excludedDestinations: uniqueStrings([
+          ...latest.excludedDestinations,
+          ...outcome.feed.excludedCities,
+        ]),
       });
     } catch {
       setReactionError(true);
@@ -314,9 +416,11 @@ export function SwipeFeed({
       query: "",
       cards: [],
       position: 0,
-      session: initialSession,
+      session: feedRef.current.session,
       receivedEventIds: [],
       failedDestinations: [],
+      page: 0,
+      excludedDestinations: [],
     });
   }
 
@@ -338,7 +442,12 @@ export function SwipeFeed({
         </header>
 
         {showSearchForm ? (
-          <SearchForm input={input} onInput={setInput} onSubmit={submit} />
+          <SearchForm
+            input={input}
+            onInput={setInput}
+            onSubmit={submit}
+            preferencesPreserved={reactionCount > 0}
+          />
         ) : (
           <section className="mt-6" aria-label="Состояние ленты">
             <div className="flex items-center justify-between gap-4 text-sm text-ink-muted">
@@ -400,16 +509,23 @@ function SearchForm({
   input,
   onInput,
   onSubmit,
+  preferencesPreserved,
 }: {
   input: string;
   onInput(value: string): void;
   onSubmit(event: FormEvent<HTMLFormElement>): void;
+  preferencesPreserved: boolean;
 }) {
   return (
     <form className="mt-8 space-y-3" onSubmit={onSubmit}>
       <label className="block text-sm font-medium" htmlFor="swipe-query">
         Опишите поездку
       </label>
+      {preferencesPreserved ? (
+        <p className="text-sm text-ink-muted">
+          Предпочтения сохранены — учтём их в новом поиске.
+        </p>
+      ) : null}
       <textarea
         id="swipe-query"
         value={input}
@@ -657,8 +773,8 @@ function EmptyFeedState({
 }) {
   if (feed.cards.length > 0 && feed.position >= feed.cards.length) {
     return (
-      <StatusPanel title="Варианты закончились">
-        Вы посмотрели все поездки из текущей ленты. Можно отменить последнюю реакцию или начать новый поиск.
+      <StatusPanel title="Подбираем ещё варианты">
+        Ищем следующие поездки с учётом ваших реакций.
       </StatusPanel>
     );
   }
@@ -791,6 +907,20 @@ function applyStreamEvent(
   const receivedEventIds = [...current.receivedEventIds, event.eventId];
 
   if (event.type === "card") {
+    const normalizedDestination = normalizeFeedValue(event.card.destination);
+    const excluded = new Set(
+      current.excludedDestinations.map(normalizeFeedValue),
+    );
+    const duplicate = current.cards.some(
+      ({ card }) => cardIdentity(card) === cardIdentity(event.card),
+    );
+    if (
+      excluded.has(normalizedDestination) ||
+      (event.update === "append" && duplicate)
+    ) {
+      commit({ ...current, receivedEventIds });
+      return;
+    }
     const existingIndex =
       event.update === "replace"
         ? current.cards.findIndex(
@@ -911,7 +1041,12 @@ function isStoredFeed(value: unknown): value is StoredFeedState {
     !Array.isArray(value.receivedEventIds) ||
     !value.receivedEventIds.every((id) => typeof id === "string") ||
     !Array.isArray(value.failedDestinations) ||
-    !value.failedDestinations.every((name) => typeof name === "string")
+    !value.failedDestinations.every((name) => typeof name === "string") ||
+    (value.page !== undefined &&
+      (!Number.isSafeInteger(value.page) || Number(value.page) < 0)) ||
+    (value.excludedDestinations !== undefined &&
+      (!Array.isArray(value.excludedDestinations) ||
+        !value.excludedDestinations.every((name) => typeof name === "string")))
   ) {
     return false;
   }
@@ -921,6 +1056,8 @@ function isStoredFeed(value: unknown): value is StoredFeedState {
   if (value.parsedQuery !== undefined && !isRecord(value.parsedQuery)) {
     return false;
   }
+  if (value.page === undefined) value.page = 0;
+  if (value.excludedDestinations === undefined) value.excludedDestinations = [];
   return value.cards.every(
     (item) =>
       isRecord(item) &&
@@ -933,6 +1070,32 @@ function isStoredFeed(value: unknown): value is StoredFeedState {
       isRecord(item.card.transport) &&
       isRecord(item.card.hotel),
   );
+}
+
+function cardIdentity(card: CardEvent["card"]): string {
+  return [
+    normalizeFeedValue(card.destination),
+    card.transport.id ?? "",
+    card.hotel.id ?? card.hotel.name,
+  ].join("|");
+}
+
+function normalizeFeedValue(value: string): string {
+  return value.normalize("NFKC").trim().toLocaleLowerCase("ru-RU").replaceAll("ё", "е");
+}
+
+function uniqueStrings(values: readonly string[]): string[] {
+  return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
+}
+
+function rankableCards(
+  cards: readonly FeedCard[],
+  start: number,
+  end: number,
+): RankableCard[] {
+  return cards
+    .slice(start, end)
+    .map(({ eventId, card }) => ({ ...card, id: eventId }));
 }
 
 function isStoredAssumedFields(value: unknown): value is DiscoveryRequiredField[] {

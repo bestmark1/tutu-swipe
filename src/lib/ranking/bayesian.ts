@@ -10,7 +10,7 @@ import {
   type RankingReactionResult,
 } from "./interface";
 import { createRandomState, sampleStandardNormal } from "./random";
-import { prepareReaction, rankCards } from "./shared";
+import { prepareReaction, prepareReactionFeatures, rankCards } from "./shared";
 
 export interface BayesianRankingState extends CommonRankingState {
   kind: "bayesian";
@@ -65,6 +65,27 @@ class BayesianRanker implements Ranker<BayesianRankingState> {
     context: RankingContext,
   ): RankingReactionResult {
     const prepared = prepareReaction(this.state, reaction, card, context);
+    return this.applyPrepared(reaction, prepared);
+  }
+
+  reactFeatures(
+    reaction: SessionReaction,
+    features: readonly number[],
+    destination: string,
+  ): RankingReactionResult {
+    const prepared = prepareReactionFeatures(
+      this.state,
+      reaction,
+      features,
+      destination,
+    );
+    return this.applyPrepared(reaction, prepared);
+  }
+
+  private applyPrepared(
+    reaction: SessionReaction,
+    prepared: ReturnType<typeof prepareReaction>,
+  ): RankingReactionResult {
     if (prepared.duplicate) return prepared.result;
 
     if (reaction.type === "like") {

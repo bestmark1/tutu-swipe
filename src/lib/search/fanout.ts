@@ -50,6 +50,7 @@ export interface FanOutSearchOptions {
   candidateBudgetRatio?: number;
   concurrency?: number;
   targetPoolSize?: number;
+  hotelPage?: number;
 }
 
 export type LiveSearchCard = SearchCard & {
@@ -114,6 +115,7 @@ export async function* fanOutSearch(
     options.targetPoolSize ?? DEFAULT_TARGET_POOL_SIZE,
     "targetPoolSize",
   );
+  const hotelPage = positiveInteger(options.hotelPage ?? 1, "hotelPage");
   // Направлений мало — значит человек назвал город, а не попросил подобрать.
   // Тогда варианты нужны внутри города: одна и та же дорога, разное жильё.
   const hotelVariantCount =
@@ -125,6 +127,7 @@ export async function* fanOutSearch(
   const snapshotEventIds = new Map<string, string>();
 
   for (const [index, candidate] of options.candidates.entries()) {
+    if (hotelPage > 1) break;
     const card = snapshot.getCard(options.query.origin, candidate.name);
     if (!card) continue;
 
@@ -185,6 +188,7 @@ export async function* fanOutSearch(
         budget,
         requestSignal,
         hotelVariantCount,
+        hotelPage,
       )
         .catch(
           (): CandidateResult => ({
@@ -326,6 +330,7 @@ async function searchCandidate(
   requestBudget: SearchBudget,
   signal: AbortSignal,
   hotelVariantCount: number,
+  hotelPage: number,
 ): Promise<CandidateResult> {
   const candidateStartedAt = performance.now();
   const candidateBudgetMs = requestBudget.candidateMs(candidateStartedAt);
@@ -370,6 +375,7 @@ async function searchCandidate(
         check_out: checkOut,
         adults: query.travellers.adults,
         children_ages: query.travellers.childrenAges,
+        page: hotelPage,
         page_size: hotelVariantCount,
         view: "compact",
       },

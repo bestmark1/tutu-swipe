@@ -153,11 +153,20 @@ describe("end-to-end failure scenarios", () => {
   it("restores cards, position, and the signed session journal after reload", async () => {
     const firstCard = snapshotEvent("snapshot-1", "Сочи");
     const secondCard = snapshotEvent("snapshot-2", "Казань");
+    const thirdCard = snapshotEvent("snapshot-3", "Тула");
+    const fourthCard = snapshotEvent("snapshot-4", "Самара");
     const fetcher = vi.fn(async () =>
       responseFor([
         firstCard,
         secondCard,
-        doneEvent([firstCard.card, secondCard.card]),
+        thirdCard,
+        fourthCard,
+        doneEvent([
+          firstCard.card,
+          secondCard.card,
+          thirdCard.card,
+          fourthCard.card,
+        ]),
       ]),
     );
     const client = sessionClient();
@@ -335,6 +344,11 @@ function sessionClient(): SwipeSessionClient {
         feed: { order: [], excludedCities: [], refillRequested: false },
       };
     }),
+    rankFeed: vi.fn(async () => ({
+      order: [],
+      excludedCities: [],
+      refillRequested: false,
+    })),
     undoLastReaction: vi.fn(async (submission) =>
       signedSession(submission.state.reactions.slice(0, -1)),
     ),

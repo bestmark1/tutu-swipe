@@ -1,4 +1,4 @@
-import { createRanker } from "../ranking";
+import { createRanker, extractFeatures } from "../ranking";
 import type { RankableCard, RankingContext } from "../ranking";
 import {
   applySessionReaction,
@@ -63,7 +63,23 @@ export function addSignedSwipeReaction(
 
   // Пересчёт идёт ровно один раз: applySessionReaction сам зовёт эту функцию
   // на итоговом журнале и кладёт результат в session.rankingState.
-  const applied = applySessionReaction(submission, reaction, (journal) =>
+  const reactedCard = cardsById.get(reaction.cardId);
+  const normalizedReaction = withoutLearningSignal(reaction);
+  const enrichedReaction =
+    reactedCard &&
+    !(normalizedReaction.type === "dislike" &&
+      normalizedReaction.reason === "wrong_city")
+      ? {
+          ...normalizedReaction,
+          learningSignal: {
+            features: extractFeatures(reactedCard, context).map(
+              (feature) => Math.round(feature * 10_000) / 10_000,
+            ),
+            destination: reactedCard.destination,
+          },
+        }
+      : normalizedReaction;
+  const applied = applySessionReaction(submission, enrichedReaction, (journal) =>
     replayJournal(journal, cardsById, context),
   );
   if (!applied.ok) throw new Error(applied.error.code);
@@ -80,6 +96,30 @@ export function addSignedSwipeReaction(
       excludedCities: [...ranker.getState().excludedCities],
       refillRequested: ranker.shouldRefill(),
     },
+  };
+}
+
+/** Ранжирует новый пул по уже подписанным реакциям, не добавляя новую. */
+export function rankSignedSwipeFeed(
+  submission: unknown,
+  cards: readonly RankableCard[] = [],
+): RankedFeed {
+  const verified = verifySessionState(submission);
+  if (!verified.ok) throw new Error(verified.error.code);
+
+  const pool = asRankableCards(cards).slice(0, MAX_RANKED_CARDS);
+  const context = rankingContext(pool);
+  const cardsById = new Map(
+    pool.filter((card) => card.id !== undefined).map((card) => [card.id!, card]),
+  );
+  const ranker = replayJournal(verified.state.reactions, cardsById, context);
+  return {
+    order: ranker
+      .rank(pool, context)
+      .map((card) => card.id)
+      .filter((id): id is string => id !== undefined),
+    excludedCities: [...ranker.getState().excludedCities],
+    refillRequested: ranker.shouldRefill(),
   };
 }
 
@@ -107,6 +147,14 @@ function replayJournal(
 ) {
   const ranker = createRanker({ strategy: "bayesian", seed: 42 });
   for (const entry of journal) {
+    if (entry.learningSignal) {
+      ranker.reactFeatures(
+        entry,
+        entry.learningSignal.features,
+        entry.learningSignal.destination,
+      );
+      continue;
+    }
     const card = cardsById.get(entry.cardId);
     if (!card) continue;
     ranker.react(entry, card, context);
@@ -132,6 +180,17 @@ function asRankableCards(value: unknown): RankableCard[] {
       candidate.hotel !== null
     );
   });
+}
+
+function withoutLearningSignal(reaction: SessionReaction): SessionReaction {
+  const base = {
+    id: reaction.id,
+    cardId: reaction.cardId,
+    occurredAt: reaction.occurredAt,
+  };
+  return reaction.type === "like"
+    ? { ...base, type: "like" }
+    : { ...base, type: "dislike", reason: reaction.reason };
 }
 
 /** Потолок цены для признака доступности: самая дорогая карточка пула. */

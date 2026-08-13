@@ -24,20 +24,37 @@ export function prepareReaction(
   features: FeatureVector;
   result: RankingReactionResult;
 } {
+  return prepareReactionFeatures(
+    state,
+    reaction,
+    extractFeatures(card, context),
+    card.destination,
+  );
+}
+
+export function prepareReactionFeatures(
+  state: CommonRankingState,
+  reaction: SessionReaction,
+  features: readonly number[],
+  destination: string,
+): { duplicate: true; result: RankingReactionResult } | {
+  duplicate: false;
+  features: FeatureVector;
+  result: RankingReactionResult;
+} {
   if (state.processedReactionIds.includes(reaction.id)) {
     return { duplicate: true, result: reactionResult(state, true) };
   }
 
   state.processedReactionIds.push(reaction.id);
   state.reactionCount += 1;
-  const features = extractFeatures(card, context);
   for (let index = 0; index < features.length; index += 1) {
     state.featureSums[index] =
       (state.featureSums[index] ?? 0) + (features[index] ?? 0);
   }
 
   if (reaction.type === "dislike" && reaction.reason === "wrong_city") {
-    const city = normalizeCity(card.destination);
+    const city = normalizeCity(destination);
     if (!state.excludedCities.includes(city)) state.excludedCities.push(city);
     state.wrongCityStreak += 1;
     if (state.wrongCityStreak >= 2) state.refillRequested = true;
@@ -47,7 +64,7 @@ export function prepareReaction(
 
   return {
     duplicate: false,
-    features,
+    features: [...features],
     result: reactionResult(state, false),
   };
 }

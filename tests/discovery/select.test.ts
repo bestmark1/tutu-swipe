@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { destinationCatalog } from "@/lib/discovery/catalog";
-import { selectDestinations } from "@/lib/discovery/select";
+import {
+  selectDestinationPage,
+  selectDestinations,
+} from "@/lib/discovery/select";
 import type { DiscoveryQuery, VibeTag } from "@/lib/discovery/schema";
 
 function query(overrides: Partial<DiscoveryQuery> = {}): DiscoveryQuery {
@@ -196,5 +199,39 @@ describe("offline destination selection", () => {
 
     expect(names.slice(0, 2)).toEqual(["Казань", "Сочи"]);
     expect(new Set(names).size).toBe(names.length);
+  });
+
+  it("F27: continuation advances through the catalog and omits excluded cities", () => {
+    const first = selectDestinationPage(query(), { page: 0 });
+    const excluded = first.candidates[0]!.name;
+    const second = selectDestinationPage(query(), {
+      page: 1,
+      excludedDestinations: [excluded],
+    });
+    const firstNames = new Set(first.candidates.map(({ name }) => name));
+
+    expect(second.candidates.map(({ name }) => name)).not.toContain(excluded);
+    expect(
+      second.candidates.every(({ name }) => !firstNames.has(name)),
+    ).toBe(true);
+  });
+
+  it("F27: a named city advances hotel pages instead of adding other cities", () => {
+    const second = selectDestinationPage(
+      query({ namedDestinations: ["Сочи"] }),
+      { page: 1 },
+    );
+
+    expect(second.candidates.map(({ name }) => name)).toEqual(["Сочи"]);
+    expect(second.hotelPage).toBe(2);
+  });
+
+  it("F27: an excluded named city is not replaced with unrelated cities", () => {
+    const next = selectDestinationPage(
+      query({ namedDestinations: ["Сочи"] }),
+      { page: 1, excludedDestinations: ["Сочи"] },
+    );
+
+    expect(next.candidates).toEqual([]);
   });
 });

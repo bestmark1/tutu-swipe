@@ -14,6 +14,7 @@ export {
   type SessionFailure,
   type SessionMetadata,
   type SessionReaction,
+  type ReactionLearningSignal,
   type SessionResult,
   type SessionState,
   type ShortlistStatus,

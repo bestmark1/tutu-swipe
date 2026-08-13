@@ -9,6 +9,8 @@ export const maxDuration = 60;
 
 const STREAM_MEDIA_TYPE = "application/x-ndjson";
 const MAX_RESUME_EVENT_IDS = 256;
+const MAX_SEARCH_PAGE = 10_000;
+const MAX_EXCLUDED_DESTINATIONS = 100;
 
 export async function POST(request: Request): Promise<Response> {
   const body = await readJsonObject(request);
@@ -46,15 +48,39 @@ export async function POST(request: Request): Promise<Response> {
       { status: 400 },
     );
   }
-  return streamSearch(input, receivedEventIds, request.signal);
+  const page = readPage(body.page);
+  const excludedDestinations = readExcludedDestinations(
+    body.excludedDestinations,
+  );
+  if (page === undefined || excludedDestinations === undefined) {
+    return Response.json(
+      {
+        status: "error",
+        code: "invalid_continuation",
+        message: "Параметры продолжения поиска имеют неверный формат.",
+      },
+      { status: 400 },
+    );
+  }
+  return streamSearch(
+    input,
+    receivedEventIds,
+    page,
+    excludedDestinations,
+    request.signal,
+  );
 }
 
 async function streamSearch(
   input: string,
   receivedEventIds: Set<string>,
+  page: number,
+  excludedDestinations: string[],
   signal: AbortSignal,
 ): Promise<Response> {
   const prepared = await prepareSearchStream(input, {
+    page,
+    excludedDestinations,
     fanOut: { signal },
   });
   if (prepared.status !== "ready") {
@@ -94,7 +120,10 @@ async function streamSearch(
       }
       try {
         let next = await iterator.next();
-        while (!next.done && receivedEventIds.has(streamEventId(next.value))) {
+        while (
+          !next.done &&
+          receivedEventIds.has(pagedEventId(page, streamEventId(next.value)))
+        ) {
           next = await iterator.next();
         }
         if (next.done) {
@@ -103,10 +132,22 @@ async function streamSearch(
           return;
         }
         const event = next.value;
+        const eventId = pagedEventId(page, streamEventId(event));
         const streamEvent =
           event.type === "card"
-            ? event
-            : { ...event, eventId: streamEventId(event) };
+            ? {
+                ...event,
+                eventId,
+                ...(event.replacesEventId
+                  ? {
+                      replacesEventId: pagedEventId(
+                        page,
+                        event.replacesEventId,
+                      ),
+                    }
+                  : {}),
+              }
+            : { ...event, eventId };
         controller.enqueue(
           encoder.encode(`${JSON.stringify(streamEvent)}\n`),
         );
@@ -160,4 +201,32 @@ function readReceivedEventIds(value: unknown): Set<string> | undefined {
     eventIds.add(eventId);
   }
   return eventIds;
+}
+
+function readPage(value: unknown): number | undefined {
+  if (value === undefined) return 0;
+  return Number.isSafeInteger(value) && Number(value) >= 0 && Number(value) <= MAX_SEARCH_PAGE
+    ? Number(value)
+    : undefined;
+}
+
+function readExcludedDestinations(value: unknown): string[] | undefined {
+  if (value === undefined) return [];
+  if (
+    !Array.isArray(value) ||
+    value.length > MAX_EXCLUDED_DESTINATIONS ||
+    !value.every(
+      (destination) =>
+        typeof destination === "string" &&
+        destination.length > 0 &&
+        destination.length <= 128,
+    )
+  ) {
+    return undefined;
+  }
+  return [...new Set(value)];
+}
+
+function pagedEventId(page: number, eventId: string): string {
+  return page === 0 ? eventId : `refill-${page}:${eventId}`;
 }

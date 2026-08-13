@@ -7,6 +7,8 @@ const SHORTLIST_FROZEN_REACTIONS = 10;
 const MAX_REACTION_ID_LENGTH = 128;
 const MAX_CARD_ID_LENGTH = 256;
 const MAX_SESSION_ID_LENGTH = 128;
+const LEARNING_FEATURE_COUNT = 9;
+const MAX_DESTINATION_LENGTH = 128;
 
 export const SESSION_ERROR_CODES = {
   INVALID_STATE: "SESSION_STATE_INVALID",
@@ -46,10 +48,17 @@ export type DislikeReason =
   | "wrong_city"
   | "wrong_hotel";
 
+export interface ReactionLearningSignal {
+  /** Нормализованные признаки карточки в контексте исходного поиска. */
+  features: number[];
+  destination: string;
+}
+
 interface ReactionBase {
   id: string;
   cardId: string;
   occurredAt: string;
+  learningSignal?: ReactionLearningSignal;
 }
 
 export type SessionReaction =
@@ -223,11 +232,17 @@ function normalizeReaction(
   if (!cardId.ok) return cardId;
   const occurredAt = timestamp(value.occurredAt, `${label}.occurredAt`);
   if (!occurredAt.ok) return occurredAt;
+  const learningSignal =
+    value.learningSignal === undefined
+      ? undefined
+      : normalizeLearningSignal(value.learningSignal, label);
+  if (learningSignal && !learningSignal.ok) return learningSignal;
 
   const base = {
     id: id.value,
     cardId: cardId.value,
     occurredAt: occurredAt.value,
+    ...(learningSignal ? { learningSignal: learningSignal.signal } : {}),
   };
   if (value.type === "like") {
     return { ok: true, reaction: { ...base, type: "like" } };
@@ -241,6 +256,40 @@ function normalizeReaction(
   return {
     ok: true,
     reaction: { ...base, type: "dislike", reason: value.reason },
+  };
+}
+
+function normalizeLearningSignal(
+  value: unknown,
+  label: string,
+): SessionResult<{ signal: ReactionLearningSignal }> {
+  if (!isRecord(value)) {
+    return invalid(`${label}.learningSignal must be an object`);
+  }
+  if (
+    !Array.isArray(value.features) ||
+    value.features.length !== LEARNING_FEATURE_COUNT ||
+    !value.features.every(
+      (feature) =>
+        typeof feature === "number" &&
+        Number.isFinite(feature) &&
+        feature >= -1 &&
+        feature <= 1,
+    )
+  ) {
+    return invalid(
+      `${label}.learningSignal.features must contain ${LEARNING_FEATURE_COUNT} normalized values`,
+    );
+  }
+  const destination = boundedString(
+    value.destination,
+    `${label}.learningSignal.destination`,
+    MAX_DESTINATION_LENGTH,
+  );
+  if (!destination.ok) return destination;
+  return {
+    ok: true,
+    signal: { features: [...value.features], destination: destination.value },
   };
 }
 

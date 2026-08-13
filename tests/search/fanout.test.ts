@@ -287,6 +287,28 @@ describe("fanOutSearch", () => {
     await expect(first).resolves.toMatchObject({ value: { type: "card" } });
   });
 
+  it("F27: requests the selected hotel page during a refill", async () => {
+    const client: SearchClient = {
+      callTool: vi.fn(async ({ name }) => success(name)),
+    };
+
+    await collect(
+      fanOutSearch({
+        candidates: candidates(1),
+        query,
+        client,
+        hotelPage: 3,
+      }),
+    );
+
+    expect(client.callTool).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: "search_hotels",
+        arguments: expect.objectContaining({ page: 3 }),
+      }),
+    );
+  });
+
   it("CONSTITUTION 18: does not retry a 429 whose Retry-After exceeds the candidate deadline", async () => {
     const client: SearchClient = {
       callTool: vi.fn().mockResolvedValue({
