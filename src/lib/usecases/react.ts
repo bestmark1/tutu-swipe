@@ -52,22 +52,23 @@ export function addSignedSwipeReaction(
   reaction: SessionReaction,
   cards: readonly RankableCard[] = [],
 ): ReactionOutcome {
-  const pool = cards.slice(0, MAX_RANKED_CARDS);
+  // Карточки приходят от клиента, и TypeScript тут ничего не гарантирует:
+  // прийти может что угодно. Кривые записи отбрасываются молча — ранжирование
+  // не то место, где стоит валить весь запрос из-за одной битой карточки.
+  const pool = asRankableCards(cards).slice(0, MAX_RANKED_CARDS);
   const context = rankingContext(pool);
   const cardsById = new Map(
     pool.filter((card) => card.id !== undefined).map((card) => [card.id!, card]),
   );
 
+  // Пересчёт идёт ровно один раз: applySessionReaction сам зовёт эту функцию
+  // на итоговом журнале и кладёт результат в session.rankingState.
   const applied = applySessionReaction(submission, reaction, (journal) =>
     replayJournal(journal, cardsById, context),
   );
   if (!applied.ok) throw new Error(applied.error.code);
 
-  const ranker = replayJournal(
-    applied.session.state.reactions,
-    cardsById,
-    context,
-  );
+  const ranker = applied.session.rankingState;
 
   return {
     session: applied.signedState,
@@ -111,6 +112,26 @@ function replayJournal(
     ranker.react(entry, card, context);
   }
   return ranker;
+}
+
+function asRankableCards(value: unknown): RankableCard[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((card): card is RankableCard => {
+    if (typeof card !== "object" || card === null) return false;
+    const candidate = card as Partial<RankableCard>;
+    return (
+      typeof candidate.id === "string" &&
+      typeof candidate.destination === "string" &&
+      typeof candidate.price?.total?.amount === "number" &&
+      Number.isFinite(candidate.price.total.amount) &&
+      typeof candidate.transport?.transport === "string" &&
+      typeof candidate.transport?.durationMinutes === "number" &&
+      Number.isFinite(candidate.transport.durationMinutes) &&
+      Array.isArray(candidate.transport?.legs) &&
+      typeof candidate.hotel === "object" &&
+      candidate.hotel !== null
+    );
+  });
 }
 
 /** Потолок цены для признака доступности: самая дорогая карточка пула. */
