@@ -42,6 +42,15 @@
 `tutu-swipe-app` изолирован в `/opt/apps/tutu-swipe` и слушает 8030 напрямую,
 мимо чужого Caddy. Ничего чужого не трогаем.
 
+**Сборка требует двух переменных**, иначе открытые вкладки ломаются после
+выкладки: `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` (постоянный, лежит в `.env` на
+сервере) и `DEPLOYMENT_VERSION`. Без первой идентификаторы Server Actions
+меняются с каждой сборкой, и вкладка получает «Не удалось сохранить реакцию».
+
+```
+NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=... DEPLOYMENT_VERSION=v$(git rev-parse --short HEAD) npm run build
+```
+
 Порядок выкладки: `npm run build`, затем комплект из `.next/standalone`,
 `.next/static`, `public/` **и `data/`** — снапшот читается с диска через
 `readFileSync` от `process.cwd()` и в standalone сам не попадает. Распаковать
