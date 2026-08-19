@@ -489,6 +489,29 @@ export function SwipeFeed({
     });
   }
 
+  /**
+   * Полный сброс: не только лента, но и журнал реакций. «Новый поиск»
+   * предпочтения намеренно сохраняет — выученное переносится между поисками, —
+   * поэтому начать с чистого листа было нельзя вообще, кроме как чистить
+   * браузер руками.
+   */
+  function forgetPreferences() {
+    setInput("");
+    setReasonPickerOpen(false);
+    setShortlistError(undefined);
+    commit({
+      query: "",
+      cards: [],
+      position: 0,
+      session: undefined,
+      receivedEventIds: [],
+      failedDestinations: [],
+      page: 0,
+      excludedDestinations: [],
+      preferenceSummary: [],
+    });
+  }
+
   async function openShortlist() {
     const currentFeed = feedRef.current;
     if (
@@ -644,6 +667,14 @@ export function SwipeFeed({
                 className="px-2 py-3 text-sm font-medium text-action transition hover:text-action-strong"
               >
                 Новый поиск
+              </button>
+              <button
+                type="button"
+                onClick={forgetPreferences}
+                title="Очистить историю реакций и начать с чистого листа"
+                className="px-2 py-3 text-sm font-medium text-ink-muted transition hover:text-ink"
+              >
+                Забыть предпочтения
               </button>
             </div>
           </section>

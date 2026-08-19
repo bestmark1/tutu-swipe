@@ -1071,6 +1071,34 @@ describe("swipe feed", () => {
 
   // F26: до подключения модели лайки сохранялись, но ни на что не влияли —
   // порядок карточек оставался тем, в каком они пришли из потока.
+  it("«Забыть предпочтения» очищает журнал реакций", async () => {
+    render(
+      <SwipeFeed
+        initialQuery="поездка"
+        initialSession={session()}
+        fetcher={vi.fn(async () =>
+          responseFor([
+            appendEvent("snapshot-1", "Сочи"),
+            appendEvent("snapshot-2", "Казань"),
+            doneEvent(),
+          ]),
+        )}
+        sessionClient={sessionClient()}
+        storageKey="forget"
+      />,
+    );
+
+    await screen.findByRole("heading", { name: "Сочи" });
+    fireEvent.click(screen.getByRole("button", { name: "Нравится" }));
+    await screen.findByText("1 реакция");
+
+    fireEvent.click(screen.getByRole("button", { name: "Забыть предпочтения" }));
+
+    // Возвращаемся к форме поиска: журнала больше нет, начинаем с чистого листа.
+    expect(await screen.findByLabelText("Опишите поездку")).toBeVisible();
+    expect(screen.queryByText("1 реакция")).not.toBeInTheDocument();
+  });
+
   it("F26: реакция переставляет ещё не показанные карточки", async () => {
     const client = sessionClient();
     vi.mocked(client.addReaction).mockImplementationOnce(async (signed, reaction) => ({
