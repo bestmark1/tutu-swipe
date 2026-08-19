@@ -243,4 +243,28 @@ describe("offline destination selection", () => {
 
     expect(next.candidates).toEqual([]);
   });
+
+  // Зарубежные направления не подмешиваются в подбор без спроса: на «хочу на
+  // море» в ленте оказывался Баку, куда нужен загранпаспорт.
+  it("не подмешивает зарубежные направления без явной просьбы", () => {
+    const candidates = selectDestinations(query({ vibeTags: ["sea"] }));
+
+    expect(candidates.map(({ name }) => name)).not.toContain("Баку");
+  });
+
+  it("возвращает зарубежные, когда человек позвал за границу", () => {
+    const candidates = selectDestinations(
+      query({ vibeTags: ["sea"], abroadRequested: true }),
+    );
+
+    expect(candidates.map(({ name }) => name)).toContain("Баку");
+  });
+
+  it("показывает названное зарубежное направление всегда", () => {
+    const candidates = selectDestinations(
+      query({ vibeTags: [], namedDestinations: ["Баку"] }),
+    );
+
+    expect(candidates.map(({ name }) => name)).toEqual(["Баку"]);
+  });
 });

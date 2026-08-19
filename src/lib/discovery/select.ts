@@ -85,7 +85,8 @@ export function selectDestinations(
     .filter(
       ({ destination }) =>
         normalizeCity(destination.name) !== normalizeCity(query.origin),
-    );
+    )
+    .filter(({ destination }) => isDestinationAllowed(destination, query));
 
   const regularSelection = selectScoredDestinations(scored, query);
   if (!query.namedDestinations || query.namedDestinations.length === 0) {
@@ -223,6 +224,25 @@ function selectScoredDestinations(
   ];
 }
 
+/**
+ * Зарубежное направление попадает в подбор, только если человек сам позвал за
+ * границу. Иначе на «хочу на море в сентябре» в ленте оказывался Баку: он на
+ * Каспийском море и формально проходит по типу места, но ехать туда нужно с
+ * загранпаспортом. Названный прямо город это не ограничивает — он идёт своим
+ * путём, через namedDestinations.
+ */
+function isDestinationAllowed(
+  destination: Destination,
+  query: DiscoveryQuery,
+): boolean {
+  if (!destination.abroad) return true;
+  if (query.abroadRequested) return true;
+  const named = query.namedDestinations ?? [];
+  return named.some(
+    (name) => normalizeCity(name) === normalizeCity(destination.name),
+  );
+}
+
 function orderedRegularCandidates(query: DiscoveryQuery): DestinationCandidate[] {
   const travelMonths = monthsInWindow(
     query.dateWindow.startDate,
@@ -240,7 +260,8 @@ function orderedRegularCandidates(query: DiscoveryQuery): DestinationCandidate[]
     .filter(
       ({ destination }) =>
         normalizeCity(destination.name) !== normalizeCity(query.origin),
-    );
+    )
+    .filter(({ destination }) => isDestinationAllowed(destination, query));
 
   const affordable = scored.filter(({ aboveBudget }) => !aboveBudget);
   const noneAffordable = affordable.length === 0;

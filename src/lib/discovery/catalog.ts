@@ -45,6 +45,12 @@ export interface Destination {
   seasonMonths: readonly number[];
   priceClass: PriceClass;
   reachability: Readonly<Record<MajorOrigin, ReachabilityClass>>;
+  /**
+   * Направление за пределами России. В подбор такие не попадают, пока человек
+   * не скажет об этом прямо: на «хочу на море в сентябре» подсовывать Баку с
+   * загранпаспортом неправильно, даже если Каспийское море формально море.
+   */
+  abroad?: boolean;
 }
 
 export type CatalogProbeStatus =

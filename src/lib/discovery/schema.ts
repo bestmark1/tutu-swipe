@@ -38,6 +38,8 @@ export interface DiscoveryQuery {
   namedDestinations?: string[];
   /** Явный ценовой ориентир без выдуманного денежного потолка. */
   budgetPreference?: "low" | "unrestricted";
+  /** Человек прямо сказал, что готов ехать за границу. */
+  abroadRequested?: boolean;
 }
 
 export type PartialDiscoveryQuery = Partial<DiscoveryQuery>;

@@ -183,6 +183,7 @@ export async function parseTravelQuery(
     vibeTags: parseVibeTags(text),
     namedDestinations,
     budgetPreference: parseBudgetPreference(text),
+    ...(mentionsAbroad(text) ? { abroadRequested: true } : {}),
   };
   removeMissingValues(parsed);
 
@@ -732,6 +733,18 @@ function parseBudget(text: string): TripBudget | undefined {
   return prefixed
     ? totalBudget(Number(prefixed[1].replace(/\s/gu, "")))
     : undefined;
+}
+
+/**
+ * Человек прямо позвал за границу. Без этого зарубежные направления в подбор
+ * не идут: на «хочу на море в сентябре» предлагать Баку с загранпаспортом
+ * неправильно. Названный явно город это правило не отменяет — он проходит
+ * отдельным путём, через namedDestinations.
+ */
+function mentionsAbroad(text: string): boolean {
+  return /(?:^|[\s,.;!?])(?:за\s+границ|за\s+рубеж|заграни|зарубеж|в\s+другую\s+стран|за\s+пределы\s+росси)/u.test(
+    text,
+  );
 }
 
 function parseBudgetPreference(
