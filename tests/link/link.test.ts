@@ -216,7 +216,7 @@ describe("shortlist link", () => {
     expect(eleventh).toEqual(tenth);
   });
 
-  it("AC31: encodes no more than three offers", () => {
+  it("AC31: сохраняет все отмеченные поездки", () => {
     const result = createShortlistLink(
       {
         baseUrl: BASE_URL,
@@ -231,7 +231,25 @@ describe("shortlist link", () => {
     const decoded = decodeShortlistFragment(new URL(result.url).hash, SECRET);
     expect(decoded.ok).toBe(true);
     if (!decoded.ok) throw new Error("Expected a valid fragment");
-    expect(decoded.payload.offers).toHaveLength(3);
+    expect(decoded.payload.offers).toHaveLength(4);
+  });
+
+  it("AC31: обрезает подборку на шести — дальше ссылку режут мессенджеры", () => {
+    const result = createShortlistLink(
+      {
+        baseUrl: BASE_URL,
+        query: QUERY,
+        session: signedSession(5),
+        selectOffers: () =>
+          Array.from({ length: 9 }, (_, index) => offer(index)),
+      },
+      SECRET,
+    );
+    if (!result.ok) throw new Error("Expected a share link");
+
+    const decoded = decodeShortlistFragment(new URL(result.url).hash, SECRET);
+    if (!decoded.ok) throw new Error("Expected a valid fragment");
+    expect(decoded.payload.offers).toHaveLength(6);
   });
 
   it("AC33b: rebuilds the same directions and marks a changed offer as replaced", async () => {

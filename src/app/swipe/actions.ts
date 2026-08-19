@@ -77,24 +77,42 @@ export async function createSwipeShortlist(
     baseUrl,
     query,
     session,
+    /**
+     * Подборка ограничена тремя поездками (AC31), и брать надо не просто три
+     * последних лайка: человек, долайкавший под конец три варианта одного
+     * города, получал подборку из одного направления, хотя раньше отметил
+     * пять разных. Сначала берём по одной поездке на каждый отмеченный город,
+     * от свежих к старым, и только потом добираем остальные.
+     */
     selectOffers(journal) {
-      const selected: ShortlistOfferRef[] = [];
-      const seen = new Set<string>();
+      const firstPerCity: ShortlistOfferRef[] = [];
+      const rest: ShortlistOfferRef[] = [];
+      const seenOffers = new Set<string>();
+      const seenCities = new Set<string>();
+
       for (let index = journal.length - 1; index >= 0; index -= 1) {
         const reaction = journal[index];
         if (reaction.type !== "like") continue;
         const candidate = byEventId.get(reaction.cardId);
         if (!candidate) continue;
         const identity = `${candidate.transportOfferId}:${candidate.hotelOfferId}`;
-        if (seen.has(identity)) continue;
-        seen.add(identity);
-        selected.push({
+        if (seenOffers.has(identity)) continue;
+        seenOffers.add(identity);
+
+        const offer: ShortlistOfferRef = {
           destination: candidate.destination,
           transportOfferId: candidate.transportOfferId,
           hotelOfferId: candidate.hotelOfferId,
-        });
+        };
+        const city = candidate.destination.trim().toLocaleLowerCase("ru-RU");
+        if (seenCities.has(city)) rest.push(offer);
+        else {
+          seenCities.add(city);
+          firstPerCity.push(offer);
+        }
       }
-      return selected;
+
+      return [...firstPerCity, ...rest];
     },
   });
 }

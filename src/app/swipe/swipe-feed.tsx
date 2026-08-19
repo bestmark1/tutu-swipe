@@ -22,6 +22,9 @@ import type {
   SessionReaction,
   SignedSessionState,
 } from "@/lib/session";
+// Напрямую из types: index тянет за собой подпись на node:crypto,
+// которой в клиентском компоненте быть не должно.
+import { MAX_SHORTLIST_OFFERS } from "@/lib/link/types";
 import type { RankableCard } from "@/lib/ranking";
 import type { CreateShortlistLinkResult } from "@/lib/link";
 import type { ReactionOutcome } from "@/lib/usecases/react";
@@ -525,6 +528,9 @@ export function SwipeFeed({
 
   const current = feed.cards[feed.position];
   const reactionCount = feed.session?.state.reactions.length ?? 0;
+  const likeCount =
+    feed.session?.state.reactions.filter(({ type }) => type === "like").length ??
+    0;
   const lastReaction = feed.session?.state.reactions.at(-1);
   const showSearchForm = !feed.query;
   const assumedChips =
@@ -605,9 +611,11 @@ export function SwipeFeed({
                 <p className="mt-2 text-sm leading-5 text-ink-muted">
                   {!feed.parsedQuery
                     ? "Параметры поездки ещё загружаются."
-                    : reactionCount >= 10
-                      ? "Подборка зафиксирована по первым десяти реакциям."
-                      : "До десятой реакции подборка будет обновляться вместе с вашими оценками."}
+                    : likeCount > MAX_SHORTLIST_OFFERS
+                      ? `В подборку попадут ${MAX_SHORTLIST_OFFERS} поездок из ${likeCount} отмеченных — по одной на каждый город, начиная со свежих. Больше не помещается в ссылку.`
+                      : reactionCount >= 10
+                        ? "Подборка зафиксирована по первым десяти реакциям."
+                        : "До десятой реакции подборка будет обновляться вместе с вашими оценками."}
                 </p>
               </section>
             ) : null}

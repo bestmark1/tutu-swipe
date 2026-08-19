@@ -61,15 +61,13 @@ describe("swipe shortlist action", () => {
     expect(url.pathname).toBe("/list");
     expect(url.hash.length).toBeGreaterThan(1);
     const decoded = decodeShortlistFragment(url.hash, SECRET);
-    expect(decoded).toMatchObject({
-      ok: true,
-      payload: {
-        offers: [
-          { destination: "Псков" },
-          { destination: "Самара" },
-          { destination: "Казань" },
-        ],
-      },
-    });
+    if (!decoded.ok) throw new Error("Expected a valid fragment");
+    // В подборку попадают все лайки, а не первые три: человек, отметивший
+    // восемь поездок, не должен гадать, куда делись пять. Дизлайкнутая
+    // карточка в подборку не идёт.
+    expect(decoded.payload.offers.map(({ destination }) => destination)).toEqual(
+      expect.arrayContaining(["Псков", "Самара", "Казань"]),
+    );
+    expect(decoded.payload.offers).toHaveLength(4);
   });
 });
