@@ -25,27 +25,41 @@ export async function rebuildShortlist(
   const search = options.search ?? searchCurrentOffers;
   const destinations = payload.offers.map(({ destination }) => destination);
   const cards = await search(payload.query, destinations);
-  const cardsByDestination = new Map(
-    cards.map((card) => [normalizeCity(card.destination), card]),
-  );
 
-  // Пересборка возвращает одну актуальную карточку на город. Если человек
-  // лайкнул несколько вариантов одного направления — а это обычное дело, когда
-  // город назван прямо, — все они схлопнутся в одну и ту же поездку. Показывать
-  // её трижды бессмысленно, поэтому оставляем первое вхождение.
-  const usedDestinations = new Set<string>();
+  // По каждому городу приходит несколько вариантов, и среди них надо найти
+  // именно тот, который человек отметил. Раньше бралась первая попавшаяся
+  // карточка города, поэтому идентификаторы почти никогда не совпадали и
+  // подборка всегда показывала «предложение заменено», даже когда исходный
+  // вариант никуда не делся.
+  const byDestination = new Map<string, SearchCard[]>();
+  for (const card of cards) {
+    const key = normalizeCity(card.destination);
+    const list = byDestination.get(key);
+    if (list) list.push(card);
+    else byDestination.set(key, [card]);
+  }
+
+  const usedCards = new Set<SearchCard>();
   return payload.offers.flatMap((offer) => {
-    const key = normalizeCity(offer.destination);
-    if (usedDestinations.has(key)) return [];
-    const card = cardsByDestination.get(key);
-    if (!card) return [];
-    usedDestinations.add(key);
+    const variants = byDestination.get(normalizeCity(offer.destination)) ?? [];
+    const available = variants.filter((card) => !usedCards.has(card));
+    if (available.length === 0) return [];
+
+    const exact = available.find(
+      (card) =>
+        card.transport.id === offer.transportOfferId &&
+        card.hotel.id === offer.hotelOfferId,
+    );
+    const sameHotel = available.find(
+      (card) => card.hotel.id === offer.hotelOfferId,
+    );
+    const card = exact ?? sameHotel ?? available[0]!;
+    usedCards.add(card);
+
     return [
       {
         card,
-        replaced:
-          card.transport.id !== offer.transportOfferId ||
-          card.hotel.id !== offer.hotelOfferId,
+        replaced: card !== exact,
         originalOffer: offer,
       },
     ];
@@ -56,21 +70,23 @@ async function searchCurrentOffers(
   query: DiscoveryQuery,
   destinations: readonly string[],
 ): Promise<SearchCard[]> {
-  const liveCards = new Map<string, SearchCard>();
+  // Собираем все живые варианты, а не по одному на город: среди них ищется
+  // тот самый, который человек отметил в ленте.
+  const liveCards: SearchCard[] = [];
   const events = fanOutSearch({
     query,
     candidates: destinations.map((name) => ({ name })),
-    targetPoolSize: destinations.length,
+    targetPoolSize: Math.max(destinations.length * 4, destinations.length),
   });
   for await (const event of events) {
     if (event.type === "card" && event.source === "live") {
-      liveCards.set(normalizeCity(event.destination), event.card);
+      liveCards.push(event.card);
     }
   }
-  return destinations.flatMap((destination) => {
-    const card = liveCards.get(normalizeCity(destination));
-    return card ? [card] : [];
-  });
+  const wanted = new Set(destinations.map(normalizeCity));
+  return liveCards.filter((card) =>
+    wanted.has(normalizeCity(card.destination)),
+  );
 }
 
 function normalizeCity(value: string): string {
