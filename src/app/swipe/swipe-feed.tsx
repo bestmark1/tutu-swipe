@@ -18,6 +18,7 @@ import type {
   DiscoveryRequiredField,
 } from "@/lib/discovery/schema";
 import type {
+  DislikeReason,
   SessionReaction,
   SignedSessionState,
 } from "@/lib/session";
@@ -39,6 +40,16 @@ const DEFAULT_RECONNECT_DELAY_MS = 750;
 const SWIPE_DISTANCE_PX = 72;
 const REFILL_THRESHOLD = 2;
 const MAX_RESUME_EVENT_IDS = 256;
+
+const DISLIKE_REASONS: readonly {
+  value: DislikeReason;
+  label: string;
+}[] = [
+  { value: "too_expensive", label: "дорого" },
+  { value: "too_long", label: "долго добираться" },
+  { value: "wrong_city", label: "не тот город" },
+  { value: "wrong_hotel", label: "не то жильё" },
+];
 
 const ASSUMED_FIELD_NAMES: readonly DiscoveryRequiredField[] = [
   "origin",
@@ -144,6 +155,7 @@ export function SwipeFeed({
   const [connection, setConnection] = useState<ConnectionState>("idle");
   const [reactionPending, setReactionPending] = useState(false);
   const [reactionError, setReactionError] = useState(false);
+  const [reasonPickerOpen, setReasonPickerOpen] = useState(false);
   const feedRef = useRef(feed);
   const reactionPendingRef = useRef(false);
   const pointerStartX = useRef<number | undefined>(undefined);
@@ -307,6 +319,7 @@ export function SwipeFeed({
     const query = input.trim();
     if (!query) return;
 
+    setReasonPickerOpen(false);
     setReactionError(false);
     setConnection("loading");
     commit({
@@ -322,7 +335,10 @@ export function SwipeFeed({
     });
   }
 
-  async function reactToCard(type: "like" | "dislike") {
+  async function reactToCard(
+    type: "like" | "dislike",
+    reason?: DislikeReason,
+  ) {
     const current = feedRef.current.cards[feedRef.current.position];
     if (!current || reactionPendingRef.current) return;
 
@@ -340,7 +356,11 @@ export function SwipeFeed({
       const reaction: SessionReaction =
         type === "like"
           ? { ...base, type: "like" }
-          : { ...base, type: "dislike", reason: "wrong_hotel" };
+          : {
+              ...base,
+              type: "dislike",
+              ...(reason === undefined ? {} : { reason }),
+            };
       // Сервер пересчитывает модель из журнала и возвращает новый порядок
       // оставшихся карточек: просмотренные остаются на местах, а те, что
       // впереди, перестраиваются под накопленные предпочтения.
@@ -355,6 +375,7 @@ export function SwipeFeed({
       );
       const latest = feedRef.current;
       const nextPosition = Math.min(latest.position + 1, latest.cards.length);
+      setReasonPickerOpen(false);
       commit({
         ...latest,
         session: outcome.session,
@@ -395,11 +416,13 @@ export function SwipeFeed({
         rankableCards(current.cards, 0, 40),
       );
       const latest = feedRef.current;
+      setReasonPickerOpen(false);
       commit({
         ...latest,
         session: nextSession,
         position: nextPosition,
         cards: reorderUpcoming(latest.cards, nextPosition, ranked),
+        excludedDestinations: ranked.excludedCities,
         preferenceSummary: ranked.preferenceSummary,
       });
     } catch {
@@ -425,6 +448,7 @@ export function SwipeFeed({
 
   function startNewSearch() {
     setInput(feed.query);
+    setReasonPickerOpen(false);
     commit({
       query: "",
       cards: [],
@@ -440,6 +464,7 @@ export function SwipeFeed({
 
   const current = feed.cards[feed.position];
   const reactionCount = feed.session?.state.reactions.length ?? 0;
+  const lastReaction = feed.session?.state.reactions.at(-1);
   const showSearchForm = !feed.query;
   const assumedChips =
     feed.parsedQuery && feed.assumedFields
@@ -472,6 +497,7 @@ export function SwipeFeed({
             <UnsupportedDestinations names={feed.unknownDestinations} />
             <AssumedChips chips={assumedChips} onEdit={startNewSearch} />
             <PreferenceChips preferences={feed.preferenceSummary} />
+            <ReasonFeedback reaction={lastReaction} />
             <ConnectionMessage connection={connection} hasCards={feed.cards.length > 0} />
             <PartialFailure destinations={feed.failedDestinations} />
 
@@ -481,10 +507,13 @@ export function SwipeFeed({
                 budget={feed.parsedQuery?.budget}
                 dateWindow={feed.parsedQuery?.dateWindow}
                 disabled={reactionPending}
+                reasonPickerOpen={reasonPickerOpen}
                 onPointerDown={pointerDown}
                 onPointerUp={pointerUp}
                 onLike={() => void reactToCard("like")}
-                onDislike={() => void reactToCard("dislike")}
+                onOpenDislikeReasons={() => setReasonPickerOpen(true)}
+                onCancelDislike={() => setReasonPickerOpen(false)}
+                onDislike={(reason) => void reactToCard("dislike", reason)}
               />
             ) : (
               <EmptyFeedState feed={feed} connection={connection} />
@@ -565,19 +594,25 @@ function TripCard({
   budget,
   dateWindow,
   disabled,
+  reasonPickerOpen,
   onPointerDown,
   onPointerUp,
   onLike,
+  onOpenDislikeReasons,
+  onCancelDislike,
   onDislike,
 }: {
   item: FeedCard;
   budget: DiscoveryQuery["budget"] | undefined;
   dateWindow: DiscoveryQuery["dateWindow"] | undefined;
   disabled: boolean;
+  reasonPickerOpen: boolean;
   onPointerDown(event: ReactPointerEvent<HTMLElement>): void;
   onPointerUp(event: ReactPointerEvent<HTMLElement>): void;
   onLike(): void;
-  onDislike(): void;
+  onOpenDislikeReasons(): void;
+  onCancelDislike(): void;
+  onDislike(reason?: DislikeReason): void;
 }) {
   const { card } = item;
   const snapshot = card.source === "snapshot" ? card : undefined;
@@ -693,24 +728,66 @@ function TripCard({
         Цена могла измениться к моменту перехода на Туту.
       </p>
 
-      <div className="mt-6 grid grid-cols-2 gap-3">
-        <button
-          type="button"
+      {reasonPickerOpen ? (
+        <fieldset
+          className="mt-6 rounded-lg border border-action/20 bg-action-soft p-4"
           disabled={disabled}
-          onClick={onDislike}
-          className="min-h-14 rounded-md border border-divider bg-field px-4 text-base font-semibold text-ink transition hover:bg-action-soft disabled:cursor-not-allowed disabled:opacity-45"
         >
-          Не нравится
-        </button>
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={onLike}
-          className="min-h-14 rounded-md bg-action px-4 text-base font-semibold text-white transition hover:bg-action-strong disabled:cursor-not-allowed disabled:opacity-45"
-        >
-          Нравится
-        </button>
-      </div>
+          <legend className="px-1 text-base font-semibold text-ink">
+            Почему не понравилось?
+          </legend>
+          <p className="mt-1 text-sm leading-5 text-ink-muted">
+            Можно не уточнять — это необязательно.
+          </p>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {DISLIKE_REASONS.map(({ value, label }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => onDislike(value)}
+                className="min-h-11 rounded-md bg-action px-3 py-2 text-sm font-semibold text-white transition hover:bg-action-strong disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => onDislike()}
+              className="min-h-11 rounded-md border border-divider bg-surface px-3 py-2 text-sm font-medium text-ink transition hover:bg-field disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              Просто дальше
+            </button>
+            <button
+              type="button"
+              onClick={onCancelDislike}
+              className="min-h-11 rounded-md px-3 py-2 text-sm font-medium text-action transition hover:bg-surface/70 disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              Назад
+            </button>
+          </div>
+        </fieldset>
+      ) : (
+        <div className="mt-6 grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={onOpenDislikeReasons}
+            className="min-h-14 rounded-md border border-divider bg-field px-4 text-base font-semibold text-ink transition hover:bg-action-soft disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            Не нравится
+          </button>
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={onLike}
+            className="min-h-14 rounded-md bg-action px-4 text-base font-semibold text-white transition hover:bg-action-strong disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            Нравится
+          </button>
+        </div>
+      )}
     </article>
   );
 }
@@ -899,6 +976,23 @@ function PreferenceChips({ preferences }: { preferences: string[] }) {
         </span>
       ))}
     </div>
+  );
+}
+
+function ReasonFeedback({ reaction }: { reaction?: SessionReaction }) {
+  if (reaction?.type !== "dislike" || reaction.reason === undefined) return null;
+  const label = DISLIKE_REASONS.find(
+    ({ value }) => value === reaction.reason,
+  )?.label;
+  if (!label) return null;
+
+  return (
+    <p
+      role="status"
+      className="mt-3 rounded-md border border-action/20 bg-action-soft px-4 py-3 text-sm font-medium text-ink"
+    >
+      Учли: {label}. Лента уже перестроена.
+    </p>
   );
 }
 

@@ -125,6 +125,29 @@ describe("signed session state", () => {
     });
   });
 
+  it("F31: accepts a generic dislike without a reason", () => {
+    const initial = signSessionState(stateWithReactions(0), SECRET);
+    const genericDislike = {
+      id: "generic-dislike",
+      cardId: "card-1",
+      occurredAt: CREATED_AT,
+      type: "dislike" as const,
+    };
+
+    expect(
+      applySessionReaction(
+        initial,
+        genericDislike,
+        (journal) => journal.length,
+        SECRET,
+      ),
+    ).toMatchObject({
+      ok: true,
+      session: { reactionCount: 1 },
+      signedState: { state: { reactions: [genericDislike] } },
+    });
+  });
+
   it("AC23: normalizes duplicate identifiers already present in a submitted journal", () => {
     const oneReaction = signSessionState(stateWithReactions(1), SECRET);
     const submitted = {

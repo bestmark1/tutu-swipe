@@ -74,7 +74,7 @@ class RuleRanker implements Ranker<RuleRankingState> {
       for (let index = 0; index < this.state.weights.length; index += 1) {
         this.state.weights[index] += LIKE_STEP * (prepared.features[index] ?? 0);
       }
-    } else {
+    } else if (reaction.reason !== undefined) {
       applyReason(this.state.weights, prepared.features, reaction.reason);
     }
     return prepared.result;

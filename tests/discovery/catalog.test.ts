@@ -1,4 +1,10 @@
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -17,7 +23,9 @@ import { selectDestinations } from "@/lib/discovery/select";
 import type { DiscoveryQuery } from "@/lib/discovery/schema";
 import {
   classifyToolResult,
+  commitCatalogValidation,
   formatCatalogSummary,
+  persistCatalogValidation,
   validateCatalogDestination,
 } from "../../scripts/validate-catalog.mjs";
 
@@ -77,6 +85,49 @@ function temporaryReport(contents?: CatalogValidationReport): string {
 }
 
 describe("catalog validation report", () => {
+  it.each(["empty", "partial"])(
+    "keeps the working report when a %s result cannot be committed",
+    (resultKind) => {
+      const workingFile = temporaryReport(report({}));
+      const workFile = `${workingFile}.partial`;
+      const stableContents = readFileSync(workingFile, "utf8");
+      const partialReport = report(
+        resultKind === "empty" ? {} : { Сочи: validationEntry() },
+      );
+
+      persistCatalogValidation(partialReport, workFile);
+
+      expect(
+        commitCatalogValidation(partialReport, ["Сочи", "Казань"], {
+          reportFile: workingFile,
+          workFile,
+        }),
+      ).toBe(false);
+      expect(readFileSync(workingFile, "utf8")).toBe(stableContents);
+      expect(existsSync(workFile)).toBe(true);
+    },
+  );
+
+  it("commits a complete validation report atomically", () => {
+    const completeDestinations = {
+      Сочи: validationEntry(),
+      Казань: validationEntry(),
+    };
+    const completeReport = report(completeDestinations);
+    const workingFile = temporaryReport(report({}));
+    const workFile = `${workingFile}.partial`;
+    persistCatalogValidation(completeReport, workFile);
+
+    expect(
+      commitCatalogValidation(completeReport, Object.keys(completeDestinations), {
+        reportFile: workingFile,
+        workFile,
+      }),
+    ).toBe(true);
+    expect(JSON.parse(readFileSync(workingFile, "utf8"))).toEqual(completeReport);
+    expect(existsSync(workFile)).toBe(false);
+  });
+
   it("excludes a destination marked unsuitable", () => {
     const filtered = applyCatalogValidation(
       catalogFixture,
@@ -319,4 +370,18 @@ function catalogDestination(name: string) {
   const destination = rawCatalog.find((entry) => entry.name === name);
   if (!destination) throw new Error(`${name} отсутствует в каталоге`);
   return destination;
+}
+
+function validationEntry(): CatalogValidationReport["destinations"][string] {
+  return {
+    status: "suitable",
+    checkedAt: "2026-08-05T09:05:00.000Z",
+    window: { checkIn: "2026-09-15", checkOut: "2026-09-19" },
+    transport: {
+      status: "offers_found",
+      byOrigin: { Москва: "offers_found" },
+      reachableFrom: ["Москва"],
+    },
+    hotels: { status: "offers_found" },
+  };
 }

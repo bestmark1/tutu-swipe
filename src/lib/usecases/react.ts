@@ -72,10 +72,12 @@ export function addSignedSwipeReaction(
   // на итоговом журнале и кладёт результат в session.rankingState.
   const reactedCard = cardsById.get(reaction.cardId);
   const normalizedReaction = withoutLearningSignal(reaction);
+  const carriesLearningSignal =
+    normalizedReaction.type === "like" ||
+    (normalizedReaction.reason !== undefined &&
+      normalizedReaction.reason !== "wrong_city");
   const enrichedReaction =
-    reactedCard &&
-    !(normalizedReaction.type === "dislike" &&
-      normalizedReaction.reason === "wrong_city")
+    reactedCard && carriesLearningSignal
       ? {
           ...normalizedReaction,
           learningSignal: {
@@ -209,7 +211,11 @@ function withoutLearningSignal(reaction: SessionReaction): SessionReaction {
   };
   return reaction.type === "like"
     ? { ...base, type: "like" }
-    : { ...base, type: "dislike", reason: reaction.reason };
+    : {
+        ...base,
+        type: "dislike",
+        ...(reaction.reason === undefined ? {} : { reason: reaction.reason }),
+      };
 }
 
 /** Считает только реакции, которые действительно обновили веса признаков. */
@@ -221,7 +227,8 @@ function preferenceReactionCount(
     (reaction) =>
       reaction.learningSignal !== undefined ||
       (cardsById.has(reaction.cardId) &&
-        !(reaction.type === "dislike" && reaction.reason === "wrong_city")),
+        (reaction.type === "like" ||
+          (reaction.reason !== undefined && reaction.reason !== "wrong_city"))),
   ).length;
 }
 

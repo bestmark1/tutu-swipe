@@ -15,6 +15,7 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 const PROJECT_ROOT = process.cwd();
 const CATALOG_FILE = path.resolve(PROJECT_ROOT, "data/destinations.json");
 const REPORT_FILE = path.resolve(PROJECT_ROOT, "data/catalog-validation.json");
+const WORK_FILE = `${REPORT_FILE}.partial`;
 const MCP_ENDPOINT = "https://mcp.tutu.ru/mcp";
 const DEFAULT_CONCURRENCY = 3;
 const MAX_CONCURRENCY = 6;
@@ -138,20 +139,44 @@ async function main() {
   assertCatalog(catalog);
 
   const origins = Object.keys(catalog[0].reachability);
+  const destinationNames = catalog.map(({ name }) => name);
   const catalogHash = createHash("sha256").update(catalogText).digest("hex");
-  let report = readReport();
+  const workReport = options.force ? null : readReport(WORK_FILE);
+  const stableReport = options.force ? null : readReport(REPORT_FILE);
+  let report = canResume(workReport, catalogHash, origins)
+    ? workReport
+    : canResume(stableReport, catalogHash, origins)
+      ? stableReport
+      : null;
 
-  if (canResume(report, catalogHash, origins) && !options.force) {
+  if (report) {
     if (report.run.status === "complete") {
-      console.log(
-        `Каталог уже проверен ${report.run.completedAt ?? report.run.startedAt}. ` +
-          "Для нового полного прогона передайте --force.",
-      );
-      return;
+      if (report === workReport) {
+        if (
+          commitCatalogValidation(report, destinationNames, {
+            reportFile: REPORT_FILE,
+            workFile: WORK_FILE,
+          })
+        ) {
+          console.log(
+            `Завершённый промежуточный отчёт сохранён: ${path.relative(PROJECT_ROOT, REPORT_FILE)}.`,
+          );
+          return;
+        }
+        report = null;
+      } else {
+        console.log(
+          `Каталог уже проверен ${report.run.completedAt ?? report.run.startedAt}. ` +
+            "Для нового полного прогона передайте --force.",
+        );
+        return;
+      }
     }
-  } else {
+  }
+
+  if (!report) {
     report = createReport(catalogHash, origins);
-    persistReport(report);
+    persistCatalogValidation(report);
   }
 
   report.run.status = "in_progress";
@@ -188,7 +213,7 @@ async function main() {
         referenceDate,
       });
       report.destinations[destination.name] = result;
-      persistReport(report);
+      persistCatalogValidation(report);
       console.log(`${destination.name}: ${result.status}`);
     });
   } finally {
@@ -198,7 +223,18 @@ async function main() {
 
   report.run.status = "complete";
   report.run.completedAt = new Date().toISOString();
-  persistReport(report);
+  persistCatalogValidation(report);
+
+  if (!commitCatalogValidation(report, destinationNames)) {
+    report.run.status = "incomplete";
+    persistCatalogValidation(report);
+    console.error(
+      `Получен неполный отчёт (${Object.keys(report.destinations).length} из ` +
+        `${destinationNames.length}). Рабочий файл НЕ перезаписан.`,
+    );
+    process.exitCode = 1;
+    return;
+  }
 
   console.log(
     `Готово: ${formatCatalogSummary(report.destinations)}. ` +
@@ -278,9 +314,9 @@ function seasonalWindow(seasonMonths, referenceDate, nights) {
   throw new Error(`Не найдено сезонное окно для месяцев: ${seasonMonths}`);
 }
 
-function readReport() {
+function readReport(file) {
   try {
-    const report = JSON.parse(readFileSync(REPORT_FILE, "utf8"));
+    const report = JSON.parse(readFileSync(file, "utf8"));
     return isReport(report) ? report : null;
   } catch {
     return null;
@@ -329,10 +365,28 @@ function isReport(value) {
   );
 }
 
-function persistReport(report) {
-  const temporaryFile = `${REPORT_FILE}.tmp`;
+export function persistCatalogValidation(report, workFile = WORK_FILE) {
+  const temporaryFile = `${workFile}.tmp`;
   writeFileSync(temporaryFile, `${JSON.stringify(report, null, 2)}\n`);
-  renameSync(temporaryFile, REPORT_FILE);
+  renameSync(temporaryFile, workFile);
+}
+
+export function commitCatalogValidation(
+  report,
+  expectedDestinations,
+  { reportFile = REPORT_FILE, workFile = WORK_FILE } = {},
+) {
+  const actualDestinations = Object.keys(report.destinations ?? {});
+  const expected = new Set(expectedDestinations);
+  const complete =
+    report.run?.status === "complete" &&
+    expected.size > 0 &&
+    actualDestinations.length === expected.size &&
+    actualDestinations.every((destination) => expected.has(destination));
+  if (!complete) return false;
+
+  renameSync(workFile, reportFile);
+  return true;
 }
 
 async function mapWithConcurrency(items, concurrency, worker) {

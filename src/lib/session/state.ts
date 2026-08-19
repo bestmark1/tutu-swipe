@@ -63,7 +63,7 @@ interface ReactionBase {
 
 export type SessionReaction =
   | (ReactionBase & { type: "like" })
-  | (ReactionBase & { type: "dislike"; reason: DislikeReason });
+  | (ReactionBase & { type: "dislike"; reason?: DislikeReason });
 
 export interface SessionMetadata {
   sessionId: string;
@@ -250,12 +250,16 @@ function normalizeReaction(
   if (value.type !== "dislike") {
     return invalid(`${label}.type must be like or dislike`);
   }
-  if (!isDislikeReason(value.reason)) {
+  if (value.reason !== undefined && !isDislikeReason(value.reason)) {
     return invalid(`${label}.reason is not a supported dislike reason`);
   }
   return {
     ok: true,
-    reaction: { ...base, type: "dislike", reason: value.reason },
+    reaction: {
+      ...base,
+      type: "dislike",
+      ...(value.reason === undefined ? {} : { reason: value.reason }),
+    },
   };
 }
 

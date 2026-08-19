@@ -730,6 +730,133 @@ describe("swipe feed", () => {
     });
   });
 
+  it.each([
+    ["дорого", "too_expensive"],
+    ["долго добираться", "too_long"],
+    ["не тот город", "wrong_city"],
+    ["не то жильё", "wrong_hotel"],
+  ] as const)(
+    "F31: sends the human-readable dislike reason %s and shows its effect",
+    async (label, reason) => {
+      const client = sessionClient();
+      render(
+        <SwipeFeed
+          initialQuery="поездка"
+          initialSession={session()}
+          fetcher={vi.fn(async () =>
+            responseFor([
+              appendEvent("snapshot-1", "Сочи"),
+              appendEvent("snapshot-2", "Казань"),
+              doneEvent([card("Сочи"), card("Казань")]),
+            ]),
+          )}
+          sessionClient={client}
+          storageKey={`dislike-reason-${reason}`}
+        />,
+      );
+
+      await screen.findByRole("heading", { name: "Сочи" });
+      fireEvent.click(screen.getByRole("button", { name: "Не нравится" }));
+      expect(
+        screen.getByRole("group", { name: "Почему не понравилось?" }),
+      ).toBeVisible();
+      const reasonButton = screen.getByRole("button", { name: label });
+      expect(reasonButton).toHaveClass("min-h-11");
+      fireEvent.click(reasonButton);
+
+      expect(await screen.findByRole("heading", { name: "Казань" })).toBeVisible();
+      expect(vi.mocked(client.addReaction).mock.calls[0][1]).toMatchObject({
+        cardId: "snapshot-1",
+        type: "dislike",
+        reason,
+      });
+      expect(
+        screen.getByText(`Учли: ${label}. Лента уже перестроена.`),
+      ).toBeVisible();
+    },
+  );
+
+  it("F31: a left swipe keeps moving without asking for a reason", async () => {
+    const client = sessionClient();
+    render(
+      <SwipeFeed
+        initialQuery="поездка"
+        initialSession={session()}
+        fetcher={vi.fn(async () =>
+          responseFor([
+            appendEvent("snapshot-1", "Сочи"),
+            appendEvent("snapshot-2", "Казань"),
+            doneEvent([card("Сочи"), card("Казань")]),
+          ]),
+        )}
+        sessionClient={client}
+        storageKey="dislike-swipe-without-reason"
+      />,
+    );
+
+    await screen.findByRole("heading", { name: "Сочи" });
+    const article = screen.getByRole("article");
+    fireEvent.pointerDown(article, { clientX: 140 });
+    fireEvent.pointerUp(article, { clientX: 20 });
+
+    expect(await screen.findByRole("heading", { name: "Казань" })).toBeVisible();
+    const reaction = vi.mocked(client.addReaction).mock.calls[0][1];
+    expect(reaction).toMatchObject({ cardId: "snapshot-1", type: "dislike" });
+    expect(reaction).not.toHaveProperty("reason");
+    expect(
+      screen.queryByRole("group", { name: "Почему не понравилось?" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("F31: undo restores a card disliked with a reason", async () => {
+    const client = sessionClient();
+    vi.mocked(client.addReaction).mockImplementationOnce(async (signed, reaction) => ({
+      session: session([...signed.state.reactions, reaction]),
+      feed: {
+        order: [],
+        excludedCities: ["Сочи"],
+        refillRequested: false,
+        preferenceSummary: [],
+      },
+    }));
+    render(
+      <SwipeFeed
+        initialQuery="поездка"
+        initialSession={session()}
+        fetcher={vi.fn(async () =>
+          responseFor([
+            appendEvent("snapshot-1", "Сочи"),
+            appendEvent("snapshot-2", "Казань"),
+            doneEvent([card("Сочи"), card("Казань")]),
+          ]),
+        )}
+        sessionClient={client}
+        storageKey="undo-dislike-with-reason"
+      />,
+    );
+
+    await screen.findByRole("heading", { name: "Сочи" });
+    fireEvent.click(screen.getByRole("button", { name: "Не нравится" }));
+    fireEvent.click(screen.getByRole("button", { name: "не тот город" }));
+    await screen.findByRole("heading", { name: "Казань" });
+    await waitFor(() =>
+      expect(
+        JSON.parse(localStorage.getItem("undo-dislike-with-reason") ?? "{}"),
+      ).toMatchObject({ excludedDestinations: ["Сочи"] }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Отменить реакцию" }));
+
+    expect(await screen.findByRole("heading", { name: "Сочи" })).toBeVisible();
+    expect(screen.getByText("0 реакций")).toBeVisible();
+    await waitFor(() =>
+      expect(
+        JSON.parse(localStorage.getItem("undo-dislike-with-reason") ?? "{}"),
+      ).toMatchObject({ excludedDestinations: [] }),
+    );
+    expect(screen.queryByText(/Учли: не тот город/u)).not.toBeInTheDocument();
+    expect(client.undoLastReaction).toHaveBeenCalledOnce();
+  });
+
   it("HTTP deployment constraint: saves a reaction without crypto.randomUUID", async () => {
     const getRandomValues = vi.fn(<T extends ArrayBufferView | null>(array: T) => {
       if (array instanceof Uint8Array) {
@@ -982,6 +1109,7 @@ describe("swipe feed", () => {
 
     await screen.findByRole("heading", { name: "Сочи" });
     fireEvent.click(screen.getByRole("button", { name: "Не нравится" }));
+    fireEvent.click(screen.getByRole("button", { name: "не тот город" }));
 
     expect(await screen.findByRole("heading", { name: "Туапсе" })).toBeVisible();
     expect(screen.getByText("2 варианта в ленте")).toBeVisible();
@@ -1037,6 +1165,7 @@ describe("swipe feed", () => {
 
     await screen.findByRole("heading", { name: "Сочи" });
     fireEvent.click(screen.getByRole("button", { name: "Не нравится" }));
+    fireEvent.click(screen.getByRole("button", { name: "не тот город" }));
 
     expect(await screen.findByRole("heading", { name: "Тула" })).toBeVisible();
     await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2));

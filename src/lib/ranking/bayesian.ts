@@ -92,7 +92,7 @@ class BayesianRanker implements Ranker<BayesianRankingState> {
       for (let index = 0; index < FEATURE_NAMES.length; index += 1) {
         this.observe(index, prepared.features[index] ?? 0, LIKE_TARGET);
       }
-    } else {
+    } else if (reaction.reason !== undefined) {
       this.observeReason(reaction.reason, prepared.features);
     }
     return prepared.result;
