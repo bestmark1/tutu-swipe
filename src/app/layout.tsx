@@ -26,7 +26,7 @@ export default function RootLayout({
         <footer className="border-t border-divider px-4 py-6 sm:px-8">
           <p className="mx-auto w-full max-w-5xl text-xs leading-5 text-ink-muted">
             Проект ИИ-хакатона Туту, 2026. Неофициальный прототип: продукт
-            использует открытый MCP Туту и оформлен в стиле сервиса, но не
+            использует открытые данные Туту и оформлен в стиле сервиса, но не
             является его официальным приложением.
           </p>
         </footer>

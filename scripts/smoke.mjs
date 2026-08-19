@@ -25,6 +25,7 @@ const ROUTES = [
     request: { redirect: "manual" },
   },
   { path: "/swipe", status: 200, contains: "Лента поездок" },
+  { path: "/help", status: 200, contains: "Как описать поездку" },
   {
     path: "/api/search",
     status: 400,
