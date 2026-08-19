@@ -125,6 +125,34 @@ function doneEvent(pool = [card("Сочи")]): SearchStreamEvent {
   return { type: "done", eventId: "done", pool };
 }
 
+function parsedQueryEvent(): SearchStreamEvent {
+  return {
+    type: "query",
+    eventId: "query",
+    query: {
+      origin: "Москва",
+      travellers: { adults: 2, childrenAges: [] },
+      dateWindow: { startDate: "2026-09-10", nights: 4 },
+      budget: {
+        amount: 80_000,
+        currency: "RUB",
+        scope: "group_trip_total",
+      },
+      vibeTags: ["sea"],
+    },
+    assumedFields: [],
+  };
+}
+
+function likes(count: number): SessionReaction[] {
+  return Array.from({ length: count }, (_, index) => ({
+    id: `existing-reaction-${index}`,
+    cardId: `existing-card-${index}`,
+    occurredAt: new Date(Date.UTC(2026, 7, 19, 9, 0, index)).toISOString(),
+    type: "like" as const,
+  }));
+}
+
 function responseFor(events: SearchStreamEvent[]): Response {
   return new Response(
     events.map((event) => JSON.stringify(event)).join("\n") + "\n",
@@ -1348,5 +1376,100 @@ describe("swipe feed", () => {
 
     await screen.findByRole("heading", { name: "Сочи" });
     expect(screen.queryByText("· подставлено")).not.toBeInTheDocument();
+  });
+
+  it("AC30: hides the shortlist before reaction five, then opens /list with a fragment", async () => {
+    const createShortlist = vi.fn(async () => ({
+      ok: true as const,
+      url: "http://localhost:3000/list#v1.payload.signature",
+      status: "mutable" as const,
+    }));
+    const navigate = vi.fn();
+
+    render(
+      <SwipeFeed
+        initialQuery="поездка"
+        initialSession={session(likes(4))}
+        fetcher={vi.fn(async () =>
+          responseFor([
+            parsedQueryEvent(),
+            appendEvent("snapshot-1", "Сочи"),
+            appendEvent("snapshot-2", "Казань"),
+            doneEvent([card("Сочи"), card("Казань")]),
+          ]),
+        )}
+        sessionClient={sessionClient()}
+        shortlistClient={createShortlist}
+        navigate={navigate}
+        storageKey="shortlist-threshold"
+      />,
+    );
+
+    await screen.findByRole("heading", { name: "Сочи" });
+    expect(
+      screen.queryByRole("button", { name: "Открыть подборку" }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Нравится" }));
+    const shortlistButton = await screen.findByRole("button", {
+      name: "Открыть подборку",
+    });
+    await waitFor(() => expect(shortlistButton).toBeEnabled());
+    expect(shortlistButton).toHaveClass("min-h-14", "bg-action");
+    fireEvent.click(shortlistButton);
+
+    await waitFor(() => expect(createShortlist).toHaveBeenCalledOnce());
+    const resultUrl = vi.mocked(createShortlist).mock.results[0].value;
+    await expect(resultUrl).resolves.toMatchObject({ ok: true });
+    await waitFor(() =>
+      expect(navigate).toHaveBeenCalledWith(
+        expect.stringMatching(/^http:\/\/localhost:3000\/list#.+/u),
+      ),
+    );
+  });
+
+  it.each([
+    [
+      "empty",
+      /нет понравившихся вариантов/iu,
+    ],
+    [
+      "invalid_session",
+      /не удалось проверить сессию/iu,
+    ],
+    [
+      "locked",
+      /сервер ещё не подтвердил пять реакций/iu,
+    ],
+    [
+      "too_long",
+      /не помещается в безопасную ссылку/iu,
+    ],
+  ] as const)("shows the shortlist failure %s", async (reason, message) => {
+    render(
+      <SwipeFeed
+        initialQuery="поездка"
+        initialSession={session(likes(5))}
+        fetcher={vi.fn(async () =>
+          responseFor([
+            parsedQueryEvent(),
+            appendEvent("snapshot-1", "Сочи"),
+            doneEvent(),
+          ]),
+        )}
+        sessionClient={sessionClient()}
+        shortlistClient={vi.fn(async () => ({ ok: false as const, reason }))}
+        navigate={vi.fn()}
+        storageKey={`shortlist-error-${reason}`}
+      />,
+    );
+
+    const shortlistButton = await screen.findByRole("button", {
+      name: "Открыть подборку",
+    });
+    await waitFor(() => expect(shortlistButton).toBeEnabled());
+    fireEvent.click(shortlistButton);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(message);
   });
 });

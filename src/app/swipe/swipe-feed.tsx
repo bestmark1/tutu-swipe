@@ -23,14 +23,17 @@ import type {
   SignedSessionState,
 } from "@/lib/session";
 import type { RankableCard } from "@/lib/ranking";
+import type { CreateShortlistLinkResult } from "@/lib/link";
 import type { ReactionOutcome } from "@/lib/usecases/react";
 import type { SearchStreamEvent } from "@/lib/usecases/search-stream";
 
 import {
   addSwipeReaction,
+  createSwipeShortlist,
   createSwipeSession,
   rankSwipeFeed,
   undoSwipeReaction,
+  type SwipeShortlistCandidate,
 } from "./actions";
 
 const DEFAULT_QUERY =
@@ -99,6 +102,10 @@ interface StoredFeedState extends FeedState {
 }
 
 type ConnectionState = "idle" | "loading" | "streaming" | "reconnecting" | "failed";
+type ShortlistFailureReason = Extract<
+  CreateShortlistLinkResult,
+  { ok: false }
+>["reason"];
 
 export interface SwipeSessionClient {
   createSession(): Promise<SignedSessionState>;
@@ -121,6 +128,13 @@ export interface SwipeFeedProps {
   sessionClient?: SwipeSessionClient;
   reconnectDelayMs?: number;
   storageKey?: string;
+  shortlistClient?: (
+    session: SignedSessionState,
+    query: DiscoveryQuery,
+    candidates: SwipeShortlistCandidate[],
+    baseUrl: string,
+  ) => Promise<CreateShortlistLinkResult>;
+  navigate?: (url: string) => void;
 }
 
 const defaultSessionClient: SwipeSessionClient = {
@@ -137,6 +151,8 @@ export function SwipeFeed({
   sessionClient = defaultSessionClient,
   reconnectDelayMs = DEFAULT_RECONNECT_DELAY_MS,
   storageKey = DEFAULT_STORAGE_KEY,
+  shortlistClient = createSwipeShortlist,
+  navigate = (url) => window.location.assign(url),
 }: SwipeFeedProps) {
   const initialState: FeedState = {
     query: initialQuery.trim(),
@@ -156,6 +172,10 @@ export function SwipeFeed({
   const [reactionPending, setReactionPending] = useState(false);
   const [reactionError, setReactionError] = useState(false);
   const [reasonPickerOpen, setReasonPickerOpen] = useState(false);
+  const [shortlistPending, setShortlistPending] = useState(false);
+  const [shortlistError, setShortlistError] = useState<
+    ShortlistFailureReason | "unexpected"
+  >();
   const feedRef = useRef(feed);
   const reactionPendingRef = useRef(false);
   const pointerStartX = useRef<number | undefined>(undefined);
@@ -321,6 +341,7 @@ export function SwipeFeed({
 
     setReasonPickerOpen(false);
     setReactionError(false);
+    setShortlistError(undefined);
     setConnection("loading");
     commit({
       query,
@@ -345,6 +366,7 @@ export function SwipeFeed({
     reactionPendingRef.current = true;
     setReactionPending(true);
     setReactionError(false);
+    setShortlistError(undefined);
     try {
       const signed =
         feedRef.current.session ?? (await sessionClient.createSession());
@@ -408,6 +430,7 @@ export function SwipeFeed({
     reactionPendingRef.current = true;
     setReactionPending(true);
     setReactionError(false);
+    setShortlistError(undefined);
     try {
       const nextSession = await sessionClient.undoLastReaction(current.session);
       const nextPosition = Math.max(0, current.position - 1);
@@ -449,6 +472,7 @@ export function SwipeFeed({
   function startNewSearch() {
     setInput(feed.query);
     setReasonPickerOpen(false);
+    setShortlistError(undefined);
     commit({
       query: "",
       cards: [],
@@ -460,6 +484,43 @@ export function SwipeFeed({
       excludedDestinations: [],
       preferenceSummary: feedRef.current.preferenceSummary,
     });
+  }
+
+  async function openShortlist() {
+    const currentFeed = feedRef.current;
+    if (
+      shortlistPending ||
+      !currentFeed.session ||
+      !currentFeed.parsedQuery
+    ) {
+      setShortlistError("invalid_session");
+      return;
+    }
+
+    setShortlistPending(true);
+    setShortlistError(undefined);
+    try {
+      const result = await shortlistClient(
+        currentFeed.session,
+        currentFeed.parsedQuery,
+        shortlistCandidates(currentFeed.cards),
+        new URL("/list", window.location.origin).href,
+      );
+      if (!result.ok) {
+        setShortlistError(result.reason);
+        return;
+      }
+      const destination = new URL(result.url);
+      if (destination.pathname !== "/list" || destination.hash.length <= 1) {
+        setShortlistError("invalid_session");
+        return;
+      }
+      navigate(result.url);
+    } catch {
+      setShortlistError("unexpected");
+    } finally {
+      setShortlistPending(false);
+    }
   }
 
   const current = feed.cards[feed.position];
@@ -522,6 +583,41 @@ export function SwipeFeed({
             {reactionError ? (
               <p role="alert" className="mt-4 text-sm text-red-700">
                 Не удалось сохранить реакцию. Попробуйте ещё раз.
+              </p>
+            ) : null}
+
+            {reactionCount >= 5 ? (
+              <section className="mt-5 rounded-lg bg-action-soft p-4" aria-label="Подборка">
+                <button
+                  type="button"
+                  disabled={
+                    shortlistPending || reactionPending || !feed.parsedQuery
+                  }
+                  onClick={() => void openShortlist()}
+                  className="min-h-14 w-full rounded-md bg-action px-5 py-3 text-base font-semibold text-white transition hover:bg-action-strong disabled:cursor-not-allowed disabled:opacity-45"
+                >
+                  {shortlistPending
+                    ? "Собираем подборку…"
+                    : feed.parsedQuery
+                      ? "Открыть подборку"
+                      : "Готовим подборку…"}
+                </button>
+                <p className="mt-2 text-sm leading-5 text-ink-muted">
+                  {!feed.parsedQuery
+                    ? "Параметры поездки ещё загружаются."
+                    : reactionCount >= 10
+                      ? "Подборка зафиксирована по первым десяти реакциям."
+                      : "До десятой реакции подборка будет обновляться вместе с вашими оценками."}
+                </p>
+              </section>
+            ) : null}
+
+            {shortlistError ? (
+              <p
+                role="alert"
+                className="mt-4 rounded-md border border-warn/30 bg-warn-soft px-4 py-3 text-sm leading-6 text-ink"
+              >
+                {shortlistErrorMessage(shortlistError, reactionCount)}
               </p>
             ) : null}
 
@@ -818,6 +914,37 @@ function PriceRow({
       </dd>
     </div>
   );
+}
+
+function shortlistCandidates(cards: readonly FeedCard[]): SwipeShortlistCandidate[] {
+  return cards.map(({ eventId, card }) => ({
+    eventId,
+    destination: card.destination,
+    transportOfferId: card.transport.id,
+    hotelOfferId: card.hotel.id,
+  }));
+}
+
+function shortlistErrorMessage(
+  reason: "empty" | "invalid_session" | "locked" | "too_long" | "unexpected",
+  reactionCount: number,
+): string {
+  if (reason === "empty") {
+    return "В подборке пока нет понравившихся вариантов. Отметьте «Нравится» хотя бы у одной поездки.";
+  }
+  if (reason === "invalid_session") {
+    return "Не удалось проверить сессию или параметры поиска. Обновите страницу и попробуйте снова.";
+  }
+  if (reason === "locked") {
+    const remaining = Math.max(0, 5 - reactionCount);
+    return remaining > 0
+      ? `Подборка откроется после пяти реакций. Осталось: ${remaining}.`
+      : "Сервер ещё не подтвердил пять реакций. Попробуйте оценить ещё один вариант.";
+  }
+  if (reason === "too_long") {
+    return "Подборка не помещается в безопасную ссылку. Сократите запрос и соберите её снова.";
+  }
+  return "Не удалось собрать подборку. Попробуйте ещё раз.";
 }
 
 function ConnectionMessage({

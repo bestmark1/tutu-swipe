@@ -42,6 +42,10 @@ describe("shared list page", () => {
 
     expect(await screen.findByRole("heading", { name: "Сочи" })).toBeVisible();
     expect(screen.getByText("Предложение заменено")).toBeVisible();
+    expect(screen.getByRole("link", { name: "Вернуться в ленту" })).toHaveAttribute(
+      "href",
+      "/swipe",
+    );
   });
 
   it("AC32: opens from the fragment in a cold browser without session or cookies", async () => {

@@ -27,7 +27,7 @@ const MAX_CONCURRENCY = 6;
 const DEFAULT_TIMEOUT_MS = 20_000;
 const EXPECTED_ORIGIN_COUNT = 6;
 const SNAPSHOT_ADULTS = 2;
-const TRANSPORT_PAGE_SIZE = 12;
+const TRANSPORT_PAGE_SIZE = 30;
 
 export function projectSnapshotEntry({
   origin,

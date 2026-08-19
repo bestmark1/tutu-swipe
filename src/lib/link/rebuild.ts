@@ -29,9 +29,17 @@ export async function rebuildShortlist(
     cards.map((card) => [normalizeCity(card.destination), card]),
   );
 
+  // Пересборка возвращает одну актуальную карточку на город. Если человек
+  // лайкнул несколько вариантов одного направления — а это обычное дело, когда
+  // город назван прямо, — все они схлопнутся в одну и ту же поездку. Показывать
+  // её трижды бессмысленно, поэтому оставляем первое вхождение.
+  const usedDestinations = new Set<string>();
   return payload.offers.flatMap((offer) => {
-    const card = cardsByDestination.get(normalizeCity(offer.destination));
+    const key = normalizeCity(offer.destination);
+    if (usedDestinations.has(key)) return [];
+    const card = cardsByDestination.get(key);
     if (!card) return [];
+    usedDestinations.add(key);
     return [
       {
         card,

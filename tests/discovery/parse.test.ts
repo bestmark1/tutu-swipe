@@ -79,12 +79,12 @@ describe("rule-based discovery query parsing", () => {
         if (result.status !== "success") {
           throw new Error(`Expected ${budget} to be parsed`);
         }
-        expect(result.query.budget.amount).toBe(expectedAmount);
+        expect(result.query.budget!.amount).toBe(expectedAmount);
         return result.query.budget;
       }),
     );
 
-    expect(budgets.every((budget) => budget.currency === "RUB")).toBe(true);
+    expect(budgets.every((budget) => budget?.currency === "RUB")).toBe(true);
   });
 
   it.each([
@@ -119,8 +119,8 @@ describe("rule-based discovery query parsing", () => {
     if (result.status !== "success") {
       throw new Error("Expected a successful parse");
     }
-    expect(result.query.budget.scope).toBe("group_trip_total");
-    expect(result.query.budget.amount).toBe(60_000);
+    expect(result.query.budget!.scope).toBe("group_trip_total");
+    expect(result.query.budget!.amount).toBe(60_000);
   });
 
   it.each(["вдвоём", "на двоих", "2 взрослых"])(
@@ -266,7 +266,7 @@ describe("rule-based discovery query parsing", () => {
     if (result.status !== "success") {
       throw new Error("Expected a successful parse");
     }
-    expect(result.query.budget.amount).toBe(amount);
+    expect(result.query.budget!.amount).toBe(amount);
   });
 
   it("extracts adults and child ages without guessing them", async () => {

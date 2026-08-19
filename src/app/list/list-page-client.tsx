@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import {
@@ -63,6 +64,13 @@ export function ListPageClient({
         <p className="mt-2 text-ink-muted">
           Цены и наличие обновлены при открытии ссылки.
         </p>
+
+        <Link
+          href="/swipe"
+          className="mt-5 inline-flex min-h-11 items-center rounded-md border border-divider bg-surface px-4 py-2 text-sm font-semibold text-action transition hover:bg-action-soft"
+        >
+          Вернуться в ленту
+        </Link>
 
         <ShareButton />
 
@@ -184,6 +192,12 @@ function Message({
       <section className="max-w-lg rounded-lg bg-surface p-8 shadow-card">
         <h1 className="text-2xl font-semibold">{title}</h1>
         <p className="mt-3 leading-7 text-ink-muted">{children}</p>
+        <Link
+          href="/swipe"
+          className="mt-6 inline-flex min-h-11 items-center rounded-md bg-action px-4 py-2 font-semibold text-white transition hover:bg-action-strong"
+        >
+          Вернуться в ленту
+        </Link>
       </section>
     </main>
   );

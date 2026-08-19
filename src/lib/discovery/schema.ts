@@ -31,7 +31,8 @@ export interface DiscoveryQuery {
   origin: string;
   travellers: TravellerComposition;
   dateWindow: DateWindow;
-  budget: TripBudget;
+  /** Может отсутствовать: человек не обязан называть сумму. */
+  budget?: TripBudget;
   vibeTags: VibeTag[];
   /** Направления из каталога в порядке упоминания во фразе. */
   namedDestinations?: string[];

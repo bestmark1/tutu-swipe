@@ -87,25 +87,23 @@ async function streamSearch(
     return Response.json(prepared, { status: 422 });
   }
 
-  // Событие нужно и когда подставлены умолчания, и когда названное человеком
-  // направление подобрать нельзя: молчать о втором так же нечестно, как о первом.
+  // Событие с разобранным запросом отправляется всегда. Раньше оно уходило
+  // только когда были подставлены умолчания или названное направление нельзя
+  // подобрать — и кнопка подборки вечно показывала «Готовим подборку…» ровно
+  // на точных запросах, где подставлять нечего. Чем лучше человек описал
+  // поездку, тем хуже работало.
   const hasUnknownDestinations =
     (prepared.unknownDestinations?.length ?? 0) > 0;
-  const queryEvent =
-    prepared.assumedFields.length > 0 || hasUnknownDestinations
-      ? ({
-          type: "query",
-          eventId: SEARCH_STREAM_QUERY_EVENT_ID,
-          query: prepared.query,
-          assumedFields: prepared.assumedFields,
-          ...(hasUnknownDestinations
-            ? { unknownDestinations: prepared.unknownDestinations }
-            : {}),
-        } satisfies SearchStreamQueryEvent)
-      : undefined;
-  let querySent =
-    queryEvent === undefined ||
-    receivedEventIds.has(SEARCH_STREAM_QUERY_EVENT_ID);
+  const queryEvent = {
+    type: "query",
+    eventId: SEARCH_STREAM_QUERY_EVENT_ID,
+    query: prepared.query,
+    assumedFields: prepared.assumedFields,
+    ...(hasUnknownDestinations
+      ? { unknownDestinations: prepared.unknownDestinations }
+      : {}),
+  } satisfies SearchStreamQueryEvent;
+  let querySent = receivedEventIds.has(SEARCH_STREAM_QUERY_EVENT_ID);
 
   const iterator = prepared.events[Symbol.asyncIterator]();
   const encoder = new TextEncoder();

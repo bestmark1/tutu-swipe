@@ -124,11 +124,18 @@ function fromCompactPayload(value: unknown): ShortlistPayload | undefined {
         childrenAges: childrenAges as number[],
       },
       dateWindow: { startDate: startDate as string, nights: nights as number },
-      budget: {
-        amount: budget as number,
-        currency: "RUB",
-        scope: "group_trip_total",
-      },
+      // Ноль в компактном виде означает «бюджет не назван»: обратно он должен
+      // разворачиваться в отсутствие поля, а не в сумму 0, которую валидация
+      // справедливо отвергает как невалидную.
+      ...(typeof budget === "number" && budget > 0
+        ? {
+            budget: {
+              amount: budget,
+              currency: "RUB" as const,
+              scope: "group_trip_total" as const,
+            },
+          }
+        : {}),
       vibeTags: vibeTags as VibeTag[],
     },
     offers,
@@ -163,15 +170,18 @@ function normalizeQuery(value: DiscoveryQuery): DiscoveryQuery | undefined {
   if (!origin || !isRecord(value.travellers) || !isRecord(value.dateWindow)) {
     return undefined;
   }
-  if (!isRecord(value.budget) || !Array.isArray(value.vibeTags)) {
-    return undefined;
-  }
+  // Бюджет и настроение необязательны: человек может их не называть, и тогда
+  // поиск идёт с умолчаниями. Раньше валидация требовала оба, из-за чего
+  // подборка по фразе «из Москвы в Сочи» вообще не собиралась — а ошибка
+  // при этом маскировалась под «неверная сессия».
+  if (!Array.isArray(value.vibeTags)) return undefined;
+  if (value.budget !== undefined && !isRecord(value.budget)) return undefined;
 
   const adults = value.travellers.adults;
   const childrenAges = value.travellers.childrenAges;
   const startDate = value.dateWindow.startDate;
   const nights = value.dateWindow.nights;
-  const budget = value.budget?.amount ?? 0;
+  const budget = value.budget?.amount;
   if (!integerBetween(adults, 1, 20)) return undefined;
   if (
     !Array.isArray(childrenAges) ||
@@ -183,25 +193,30 @@ function normalizeQuery(value: DiscoveryQuery): DiscoveryQuery | undefined {
   if (!isIsoDate(startDate) || !integerBetween(nights, 1, 60)) {
     return undefined;
   }
-  if (!Number.isSafeInteger(budget) || budget <= 0) return undefined;
-  if (
-    value.budget.currency !== "RUB" ||
-    value.budget.scope !== "group_trip_total" ||
-    value.vibeTags.length === 0 ||
-    !value.vibeTags.every(isVibeTag)
-  ) {
-    return undefined;
+  if (budget !== undefined) {
+    if (!Number.isSafeInteger(budget) || budget <= 0) return undefined;
+    if (
+      value.budget?.currency !== "RUB" ||
+      value.budget?.scope !== "group_trip_total"
+    ) {
+      return undefined;
+    }
   }
+  if (!value.vibeTags.every(isVibeTag)) return undefined;
 
   return {
     origin,
     travellers: { adults, childrenAges: [...childrenAges] },
     dateWindow: { startDate, nights },
-    budget: {
-      amount: budget,
-      currency: "RUB",
-      scope: "group_trip_total",
-    },
+    ...(budget !== undefined
+      ? {
+          budget: {
+            amount: budget,
+            currency: "RUB" as const,
+            scope: "group_trip_total" as const,
+          },
+        }
+      : {}),
     vibeTags: [...value.vibeTags],
   };
 }

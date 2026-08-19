@@ -71,9 +71,14 @@ describe("streaming POST /api/search", () => {
       "application/x-ndjson",
     );
     const reader = response.body!.getReader();
-    const first = await reader.read();
-
-    expect(new TextDecoder().decode(first.value)).toContain('"type":"card"');
+    // Первым идёт разобранный запрос — он нужен клиенту сразу, чтобы показать
+    // подставленные параметры и включить сбор подборки. Карточка идёт следом,
+    // не дожидаясь конца веера: AC8 требует именно этого.
+    const decoder = new TextDecoder();
+    const first = decoder.decode((await reader.read()).value);
+    expect(first).toContain('"type":"query"');
+    const second = decoder.decode((await reader.read()).value);
+    expect(second).toContain('"type":"card"');
     finish();
     await reader.cancel();
   });

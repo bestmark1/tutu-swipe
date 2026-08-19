@@ -40,7 +40,7 @@ describe("offline destination selection", () => {
     const candidates = selectDestinations(
       query({
         vibeTags: ["mountains"],
-        budget: { ...query().budget, amount: 60_000 },
+        budget: { currency: "RUB" as const, scope: "group_trip_total" as const, ...query().budget, amount: 60_000 },
       }),
     );
     const matching = candidates.filter(({ locationTypes }) =>
@@ -62,7 +62,7 @@ describe("offline destination selection", () => {
       query({
         origin: "Казань",
         vibeTags: ["city"],
-        budget: { ...query().budget, amount: 150_000 },
+        budget: { currency: "RUB" as const, scope: "group_trip_total" as const, ...query().budget, amount: 150_000 },
       }),
     );
 
@@ -71,7 +71,7 @@ describe("offline destination selection", () => {
 
   it("keeps the cheapest candidates and marks them when every class is over budget", () => {
     const candidates = selectDestinations(
-      query({ budget: { ...query().budget, amount: 1_000 } }),
+      query({ budget: { currency: "RUB" as const, scope: "group_trip_total" as const, ...query().budget, amount: 1_000 } }),
     );
 
     expect(candidates.length).toBeGreaterThan(0);
@@ -93,7 +93,7 @@ describe("offline destination selection", () => {
       const candidates = selectDestinations(
         query({
           dateWindow: { startDate, nights: 7 },
-          budget: { ...query().budget, amount },
+          budget: { currency: "RUB" as const, scope: "group_trip_total" as const, ...query().budget, amount },
           vibeTags: [vibe],
         }),
       );
@@ -116,13 +116,13 @@ describe("offline destination selection", () => {
     const mountains = selectDestinations(
       query({
         vibeTags: ["mountains"],
-        budget: { ...query().budget, amount: 150_000 },
+        budget: { currency: "RUB" as const, scope: "group_trip_total" as const, ...query().budget, amount: 150_000 },
       }),
     ).map(({ name }) => name);
     const cities = selectDestinations(
       query({
         vibeTags: ["city"],
-        budget: { ...query().budget, amount: 150_000 },
+        budget: { currency: "RUB" as const, scope: "group_trip_total" as const, ...query().budget, amount: 150_000 },
       }),
     ).map(({ name }) => name);
 
@@ -148,7 +148,7 @@ describe("offline destination selection", () => {
   it("F25: названное направление показывается даже дороже бюджета", () => {
     const candidates = selectDestinations(
       query({
-        budget: { ...query().budget, amount: 1_000 },
+        budget: { currency: "RUB" as const, scope: "group_trip_total" as const, ...query().budget, amount: 1_000 },
         namedDestinations: ["Горно-Алтайск"],
       }),
     );
@@ -191,7 +191,7 @@ describe("offline destination selection", () => {
     const candidates = selectDestinations(
       query({
         vibeTags: ["city"],
-        budget: { ...query().budget, amount: 150_000 },
+        budget: { currency: "RUB" as const, scope: "group_trip_total" as const, ...query().budget, amount: 150_000 },
         namedDestinations: ["Казань", "Сочи", "Казань"],
       }),
     );
