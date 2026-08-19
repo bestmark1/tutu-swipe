@@ -115,7 +115,7 @@ describe("snapshot search", () => {
       },
     });
 
-    expect(entry).toMatchObject({
+    expect(entry?.[0]).toMatchObject({
       adults: 2,
       transports: [
         { search_results_url: "https://www.tutu.ru/snapshot-search" },
@@ -212,10 +212,10 @@ describe("snapshot search", () => {
       },
     });
 
-    expect(entry?.transports.map(({ offer_id }) => offer_id)).toEqual([
-      "snapshot-transport",
-      "fast-bus",
-    ]);
+    // Функция возвращает по записи на каждый отель — транспорт у них общий.
+    expect(
+      entry?.[0]?.transports.map((t: { offer_id: string }) => t.offer_id),
+    ).toEqual(["snapshot-transport", "fast-bus"]);
   });
 
   it("stores no alternative when every transport has the same kind", () => {
@@ -241,7 +241,7 @@ describe("snapshot search", () => {
       },
     });
 
-    expect(entry?.transports).toHaveLength(1);
+    expect(entry?.[0]?.transports).toHaveLength(1);
   });
 
   it("AC7: yields a snapshot card before making any MCP call", async () => {

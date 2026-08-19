@@ -28,6 +28,15 @@ const DEFAULT_TIMEOUT_MS = 20_000;
 const EXPECTED_ORIGIN_COUNT = 6;
 const SNAPSHOT_ADULTS = 2;
 const TRANSPORT_PAGE_SIZE = 30;
+/**
+ * Сколько вариантов жилья сохранять на направление.
+ *
+ * Был один, и лента показывала «Туапсе / Санаторий Арго / поезд» и
+ * «Туапсе / Санаторий Арго / автобус» — один и тот же отель дважды, менялась
+ * только дорога. Владелец справедливо спросил, почему не может быть тот же
+ * город, но другое жильё. Теперь берём три.
+ */
+const HOTEL_PAGE_SIZE = 3;
 
 export function projectSnapshotEntry({
   origin,
@@ -46,9 +55,12 @@ export function projectSnapshotEntry({
     "hotels",
   );
   const compactTransport = projectTransport(transportVariants[0]);
-  const compactHotel = hotels
+  // По одной записи на отель: формат остаётся прежним, а направление получает
+  // несколько вариантов жилья вместо одного повторяющегося.
+  const compactHotels = hotels
     .map(projectHotel)
-    .find((hotel) => hotel !== null);
+    .filter((hotel) => hotel !== null);
+  const compactHotel = compactHotels[0];
   if (!compactTransport || !compactHotel) return null;
   if (
     compactTransport.price.currency !==
@@ -71,15 +83,20 @@ export function projectSnapshotEntry({
   const stay = projectStay(
     requiredRecord(hotelPayload, "hotel payload").stay,
   );
-  return {
+  const base = {
     origin: requiredString(origin, "origin"),
     destination: requiredString(destination, "destination"),
     builtAt: requiredIsoDate(builtAt, "builtAt"),
     adults: requiredPositiveInteger(adults, "adults"),
     transports,
-    hotel: compactHotel,
     stay,
   };
+  return compactHotels
+    .filter(
+      (hotel) =>
+        hotel.best_offer.price.currency === compactTransport.price.currency,
+    )
+    .map((hotel) => ({ ...base, hotel }));
 }
 
 async function main() {
@@ -138,7 +155,7 @@ async function main() {
               adults: SNAPSHOT_ADULTS,
               children_ages: [],
               page: 1,
-              page_size: 1,
+              page_size: HOTEL_PAGE_SIZE,
               view: "compact",
             },
           });
@@ -164,7 +181,7 @@ async function main() {
                 view: "compact",
               },
             });
-            const entry = projectSnapshotEntry({
+            const entries = projectSnapshotEntry({
               origin,
               destination,
               builtAt: new Date().toISOString(),
@@ -172,7 +189,7 @@ async function main() {
               transportPayload,
               hotelPayload,
             });
-            if (entry) output.entries.push(entry);
+            if (entries && entries.length > 0) output.entries.push(...entries);
             else {
               recordFailure(
                 output,

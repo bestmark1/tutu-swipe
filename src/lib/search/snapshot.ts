@@ -76,10 +76,13 @@ function createIndex(
         now,
         staleAfterMs,
       );
-      cards.set(
-        snapshotKey(parsed.origin, parsed.destination),
-        parsed.cards,
-      );
+      // Записей на одну пару «откуда → куда» может быть несколько — по одной
+      // на вариант жилья. Раньше set затирал предыдущую, и на направление
+      // оставался единственный отель: лента показывала его дважды, меняя
+      // только дорогу.
+      const key = snapshotKey(parsed.origin, parsed.destination);
+      const existing = cards.get(key);
+      cards.set(key, existing ? [...existing, ...parsed.cards] : parsed.cards);
     } catch {
       // One bad entry must not invalidate the rest of the checked-in snapshot.
     }

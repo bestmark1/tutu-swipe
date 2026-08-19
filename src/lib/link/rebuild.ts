@@ -91,6 +91,7 @@ async function searchCurrentOffers(
   );
 
   const liveCards: SearchCard[] = [];
+  const snapshotCards: SearchCard[] = [];
   const events = fanOutSearch({
     query,
     candidates: uniqueDestinations.map((name) => ({ name })),
@@ -98,12 +99,19 @@ async function searchCurrentOffers(
     targetPoolSize: Math.max(destinations.length * 4, destinations.length),
   });
   for await (const event of events) {
-    if (event.type === "card" && event.source === "live") {
-      liveCards.push(event.card);
-    }
+    if (event.type !== "card") continue;
+    if (event.source === "live") liveCards.push(event.card);
+    // Снапшотные карточки держим про запас: именно их человек чаще всего и
+    // отмечает — они приходят первыми, — а живой поиск по городу может не
+    // ответить вовсе. Раньше такой город пропадал из подборки целиком.
+    else snapshotCards.push(event.card);
   }
   const wanted = new Set(destinations.map(normalizeCity));
-  return liveCards.filter((card) =>
+  const liveCities = new Set(liveCards.map((card) => normalizeCity(card.destination)));
+  const fallback = snapshotCards.filter(
+    (card) => !liveCities.has(normalizeCity(card.destination)),
+  );
+  return [...liveCards, ...fallback].filter((card) =>
     wanted.has(normalizeCity(card.destination)),
   );
 }
