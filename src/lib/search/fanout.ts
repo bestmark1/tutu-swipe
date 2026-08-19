@@ -64,6 +64,12 @@ export interface FanOutSearchOptions {
   candidateBudgetRatio?: number;
   concurrency?: number;
   targetPoolSize?: number;
+  /**
+   * Сколько вариантов жилья брать по каждому направлению. По умолчанию пять,
+   * когда направление одно, и одно в остальных случаях. Подборка задаёт это
+   * явно: в ней может оказаться несколько отмеченных поездок одного города.
+   */
+  hotelVariantCount?: number;
   hotelPage?: number;
 }
 
@@ -139,9 +145,8 @@ export async function* fanOutSearch(
   // Направлений мало — значит человек назвал город, а не попросил подобрать.
   // Тогда варианты нужны внутри города: одна и та же дорога, разное жильё.
   const hotelVariantCount =
-    options.candidates.length === 1
-      ? SINGLE_DESTINATION_HOTEL_VARIANTS
-      : 1;
+    options.hotelVariantCount ??
+    (options.candidates.length === 1 ? SINGLE_DESTINATION_HOTEL_VARIANTS : 1);
   const snapshot = loadSnapshot({ filePath: options.snapshotPath });
   const poolByDestination = new Map<string, FanOutSearchCard>();
   const snapshotEventIds = new Map<string, SnapshotSlot[]>();

@@ -72,10 +72,29 @@ async function searchCurrentOffers(
 ): Promise<SearchCard[]> {
   // Собираем все живые варианты, а не по одному на город: среди них ищется
   // тот самый, который человек отметил в ленте.
+  //
+  // Города в подборке повторяются: человек мог отметить несколько поездок в
+  // один и тот же город с разным жильём. Раньше такие дубликаты уходили в
+  // поиск как отдельные кандидаты, и на каждого запрашивался один вариант
+  // жилья — возвращалась одна и та же поездка, повторы отсекались, и в
+  // подборке оставалась единственная карточка.
+  const uniqueDestinations = [...new Set(destinations.map(normalizeCity))].map(
+    (key) => destinations.find((name) => normalizeCity(name) === key)!,
+  );
+  const maxPerDestination = Math.max(
+    ...uniqueDestinations.map(
+      (name) =>
+        destinations.filter((item) => normalizeCity(item) === normalizeCity(name))
+          .length,
+    ),
+    1,
+  );
+
   const liveCards: SearchCard[] = [];
   const events = fanOutSearch({
     query,
-    candidates: destinations.map((name) => ({ name })),
+    candidates: uniqueDestinations.map((name) => ({ name })),
+    hotelVariantCount: Math.max(maxPerDestination, 3),
     targetPoolSize: Math.max(destinations.length * 4, destinations.length),
   });
   for await (const event of events) {
