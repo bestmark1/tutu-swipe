@@ -3,6 +3,14 @@ import type { TripCard } from "../packages/build";
 
 export type SearchCard = TripCard<TransportVariantDto, HotelOfferDto> & {
   destination: string;
+  /**
+   * Направление не подходит под запрошенное настроение, но показано, потому
+   * что подходящие закончились. Морских направлений в каталоге всего девять
+   * достижимых, и на второй-третьей странице дозабора они кончаются — без
+   * этой пометки человек видит Псков в ответ на «хочу на море» и справедливо
+   * считает это поломкой.
+   */
+  offCategory?: boolean;
 };
 
 export type CandidateErrorReason =

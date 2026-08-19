@@ -744,6 +744,16 @@ function TripCard({
         ) : null}
       </div>
 
+      {/* Морских направлений в каталоге девять достижимых, и на второй-третьей
+          странице дозабора они кончаются. Без этой подписи человек видит Псков
+          в ответ на «хочу на море» и справедливо считает это поломкой. */}
+      {card.offCategory ? (
+        <p className="mt-3 rounded-md border border-warn/30 bg-warn-soft px-3 py-2 text-sm leading-6 text-ink">
+          Не совсем по вашему запросу: подходящие направления закончились,
+          показываем близкие по остальным пожеланиям.
+        </p>
+      ) : null}
+
       {item.isNewDestination ? (
         <p className="mt-3 text-sm font-medium text-ink-muted">
           Найдено новое направление

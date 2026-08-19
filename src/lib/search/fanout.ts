@@ -53,6 +53,7 @@ export interface SearchClient {
 
 export interface FanOutSearchOptions {
   candidates: readonly (Pick<DestinationCandidate, "name"> & {
+    isFallback?: boolean;
     locationTypes?: readonly LocationType[];
   })[];
   query: DiscoveryQuery;
@@ -389,6 +390,7 @@ async function searchCandidate(
   client: SearchClient,
   query: DiscoveryQuery,
   candidate: Pick<DestinationCandidate, "name"> & {
+    isFallback?: boolean;
     locationTypes?: readonly LocationType[];
   },
   requestBudget: SearchBudget,
@@ -486,6 +488,8 @@ async function searchCandidate(
   // Когда человек назвал город, направление одно, и свайпать было бы нечего:
   // лента из единственной карточки. Поэтому по такому городу собираем несколько
   // вариантов жилья на одной и той же — самой дешёвой — дороге.
+  // Направление показано вместо подходящего, потому что подходящие кончились.
+  const offCategoryFlag = candidate.isFallback ? { offCategory: true } : {};
   const cards: SearchCard[] = [];
   for (const hotel of hotelSearch.hotels.slice(0, hotelVariantCount)) {
     const built = buildTripCard(
@@ -494,7 +498,7 @@ async function searchCandidate(
       { adults: query.travellers.adults, locationType },
     );
     if (built.status !== "built") continue;
-    cards.push({ ...built.card, destination });
+    cards.push({ ...built.card, destination, ...offCategoryFlag });
   }
 
   // Самый дешёвый вариант почти всегда один и тот же автобус или поезд, и лента
@@ -510,7 +514,9 @@ async function searchCandidate(
       { ...hotelSearch, hotels: hotelSearch.hotels.slice(0, 1) },
       { adults: query.travellers.adults, locationType },
     );
-    if (built.status === "built") cards.push({ ...built.card, destination });
+    if (built.status === "built") {
+      cards.push({ ...built.card, destination, ...offCategoryFlag });
+    }
   }
 
   if (cards.length === 0) {
